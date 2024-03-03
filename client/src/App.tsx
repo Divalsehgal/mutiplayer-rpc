@@ -5,50 +5,62 @@ const url = "http://localhost:3030";
 const socket = io(url);
 
 function App() {
-  const [msg, setMsg] = useState({});
-  const [msgr, setMsgR] = useState([]);
-  const [username, setUserName] = useState("");
-  const id = socket.id;
-  const sendMessage = (e: any) => {
-    socket.emit("send-message", {
-      msg: msg.msg,
-      username: username,
-    });
-  };
+  const [username, setUsername] = useState("");
+  const [users, setUsers] = useState([]);
+  const [userState, setUserState] = useState("");
 
   useEffect(() => {
-    socket.on("recieve-msg", (allMsg: any) => {
-      setMsgR((prev) => [...prev, allMsg]);
+    // Listen for 'users-update' event from the server
+    socket.on("users-update", (updatedUsers) => {
+      setUsers(updatedUsers);
+      const readyUsersCount = updatedUsers.filter(
+        (user) => user.state === "ready"
+      ).length;
+      if (readyUsersCount === 2) {
+        setUserState("Both users are ready");
+      } else {
+        setUserState("Waiting for more users to join");
+      }
     });
-  }, [socket]);
 
-  const inputHandlermsg = (e: any) => {
-    setMsg({ id: socket.id, msg: e.target.value, name: username });
+    return () => {
+      socket.off("users-update");
+    };
+  }, []);
+
+  const inputHandlerName = (e) => {
+    setUsername(e.target.value);
   };
-  const inputHandlerName = (e: any) => {
-    setUserName(e.target.value);
+
+  const registerUser = () => {
+    if (username !== "") socket.emit("register", username);
   };
+
+  console.log(users);
+
   return (
     <>
-      <input placeholder="message" type="text" onChange={inputHandlermsg} />
       <input
-        placeholder="enter your name"
+        placeholder="Enter your name"
         type="text"
         onChange={inputHandlerName}
       />
-      <button onClick={sendMessage}>send message</button>
-
-      <>
-        {msgr.map((m) => {
-          console.log(m);
-          return (
-            <div>
-              {m.username}::
-              {m.msg}
-            </div>
-          );
-        })}
-      </>
+      current user: {username}
+      <button className="register" onClick={registerUser}>
+        Register
+      </button>
+      <div>
+        <h2>User List</h2>
+        <p>{userState}</p>
+        <ul>
+          {users.map((user, index) => (
+            <li key={index}>
+              {user?.name} - {user.state}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div></div>
     </>
   );
 }
