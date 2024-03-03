@@ -28,7 +28,7 @@ function App() {
     return () => {
       socket.off("users-update");
     };
-  }, []);
+  }, [socket]);
 
   const inputHandlerName = (e) => {
     setUsername(e.target.value);
@@ -43,17 +43,26 @@ function App() {
 
   const startGameHandler = () => {
     // Handle starting the game
+    let joingame = Object.values(users).find((user) => user.state === "playing")
+    if (joingame?.state === "playing") {
+      socket.emit("join-room", joingame.room);
+    } else {
+      socket.emit("start-game");
+    }
   };
+
 
   return (
     <div className="container">
       <h3>Welcome to this Game</h3>
-      {!currentUser.id && <h5>Please enter your name and register yourself</h5>}
-      {currentUser.name && (
-        <div className="current-player">Current user: {currentUser.name}</div>
+      {!currentUser?.id && (
+        <h5>Please enter your name and register yourself</h5>
+      )}
+      {currentUser?.name && (
+        <div className="current-player">Current user: {currentUser?.name}</div>
       )}
 
-      {!currentUser.id && (
+      {!currentUser?.id && (
         <div>
           <input
             placeholder="Enter your name"
@@ -67,7 +76,7 @@ function App() {
         </div>
       )}
 
-      {currentUser.state === "ready" && (
+      {currentUser?.state === "ready" && (
         <div>
           <button onClick={startGameHandler}>Start</button>
         </div>

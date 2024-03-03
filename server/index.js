@@ -65,6 +65,41 @@ io.on("connection", (socket) => {
     });
 
 
+    socket.on("start-game", () => {
+        const readyUsers = Object.values(users).filter(user => user.state === "ready");
+        console.log(readyUsers)
+        if (readyUsers.length === 2) {
+            const initiatingUser = readyUsers.find(user => user.id === socket.id);
+            const otherUser = readyUsers.find(user => user.id !== socket.id);
+            if (initiatingUser && otherUser) {
+                const roomName = "room-" + Math.random().toString(36).substr(2, 5); // Generate a random room name
+                initiatingUser.state = "playing";
+                initiatingUser.room = roomName;
+                io.emit("users-update", users); // Update user states for all clients
+                io.to(initiatingUser.id).emit("game-started", roomName); // Inform the initiating user about the game start
+
+                // Inform the other user about the game and provide the room name
+                io.to(otherUser.id).emit("join-game", roomName);
+            }
+        } else {
+            // Handle if there are not enough users in the ready state
+            socket.emit("not-enough-users", { message: "Not enough users in the ready state to start the game." });
+        }
+    });
+
+    socket.on("join-room", (roomName) => {
+        console.log('joining')
+        socket.join(roomName);
+        const user = Object.values(users).find(user => user.id === socket.id);
+        if (user) {
+            user.state = "playing";
+            user.room = roomName;
+            io.emit("users-update", users); // Update user states for all clients
+        }
+    });
+
+
+
     socket.on("send-message", (message) => {
         // Broadcasting message to all users
         socket.broadcast.emit("receive-msg", message);
