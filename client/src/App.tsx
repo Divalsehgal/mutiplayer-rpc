@@ -6,15 +6,17 @@ const socket = io(url);
 
 function App() {
   const [username, setUsername] = useState("");
-  const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState({});
+  const [users, setUsers] = useState({});
   const [userState, setUserState] = useState("");
 
   useEffect(() => {
     // Listen for 'users-update' event from the server
     socket.on("users-update", (updatedUsers) => {
       setUsers(updatedUsers);
-      const readyUsersCount = updatedUsers.filter(
-        (user) => user.state === "ready"
+      setCurrentUser(updatedUsers[socket.id]);
+      const readyUsersCount = Object.keys(updatedUsers).filter(
+        (userId) => updatedUsers[userId].state === "ready"
       ).length;
       if (readyUsersCount === 2) {
         setUserState("Both users are ready");
@@ -33,35 +35,55 @@ function App() {
   };
 
   const registerUser = () => {
-    if (username !== "") socket.emit("register", username);
+    if (username !== "") {
+      socket.emit("register", username);
+      setUsername("");
+    }
   };
 
-  console.log(users);
+  const startGameHandler = () => {
+    // Handle starting the game
+  };
 
   return (
-    <>
-      <input
-        placeholder="Enter your name"
-        type="text"
-        onChange={inputHandlerName}
-      />
-      current user: {username}
-      <button className="register" onClick={registerUser}>
-        Register
-      </button>
+    <div className="container">
+      <h3>Welcome to this Game</h3>
+      {!currentUser.id && <h5>Please enter your name and register yourself</h5>}
+      {currentUser.name && (
+        <div className="current-player">Current user: {currentUser.name}</div>
+      )}
+
+      {!currentUser.id && (
+        <div>
+          <input
+            placeholder="Enter your name"
+            type="text"
+            onChange={inputHandlerName}
+            value={username}
+          />
+          <button className="register" onClick={registerUser}>
+            Register
+          </button>
+        </div>
+      )}
+
+      {currentUser.state === "ready" && (
+        <div>
+          <button onClick={startGameHandler}>Start</button>
+        </div>
+      )}
       <div>
         <h2>User List</h2>
-        <p>{userState}</p>
         <ul>
-          {users.map((user, index) => (
+          {Object.values(users).map((user, index) => (
             <li key={index}>
-              {user?.name} - {user.state}
+              {user.name} - {user.state}
             </li>
           ))}
         </ul>
       </div>
       <div></div>
-    </>
+    </div>
   );
 }
 

@@ -14,23 +14,22 @@ const io = new Server(server, {
     }
 });
 
-let users = []; // Array to store registered users
+let users = {}; // Array to store registered users
 
 io.on("connection", (socket) => {
     socket.on("register", (userName) => {
         // Check if a user with the same name already exists
-        const existingUser = users.find(user => user.name === userName);
+        const existingUser = Object.values(users).find(user => user.name === userName.toLowerCase());
         if (!existingUser) {
             const user = {
                 id: socket.id,
                 name: userName,
                 state: "waiting" // Initial state
             };
-            users.push(user);
-
-            if (users.length === 2) {
+            users[socket.id]=user;
+            if (Object.values(users).length === 2) {
                 // If there are exactly 2 users, set their state to 'ready'
-                users.forEach(user => {
+                Object.values(users).forEach(user => {
                     user.state = "ready";
                 });
             }
@@ -44,21 +43,24 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
         // Find the user who disconnected
-        const userIndex = users.findIndex(user => user.id === socket.id);
+        const userIds = Object.keys(users);
+        const userIndex = userIds.findIndex(id => users[id].id === socket.id);
         if (userIndex !== -1) {
-            users.splice(userIndex, 1); // Remove the user from the array
+            const userId = userIds[userIndex];
+            delete users[userId]; // Remove the user from the object
 
             // Check if there is exactly one user remaining
-            if (users.length === 1) {
-                users[0].state = "waiting"; // Set the state of the remaining user to "waiting"
+            if (Object.keys(users).length === 1) {
+                const remainingUserId = Object.keys(users)[0];
+                users[remainingUserId].state = "waiting"; // Set the state of the remaining user to "waiting"
             } else {
                 // Check if there are users in the waiting state to promote to ready
-                const waitingUsers = users.filter(user => user.state === "waiting");
+                const waitingUsers = Object.values(users).filter(user => user.state === "waiting");
                 if (waitingUsers.length > 0) {
                     waitingUsers[0].state = "ready";
                 }
             }
-            io.emit("users-update", users); // Send the updated user array to all clients
+            io.emit("users-update", users); // Send the updated user object to all clients
         }
     });
 
