@@ -15,6 +15,7 @@ const io = new Server(server, {
 });
 
 let users = {}; // Array to store registered users
+let rooms = {}; // Object to store room details
 
 io.on("connection", (socket) => {
     socket.on("register", (userName) => {
@@ -26,7 +27,7 @@ io.on("connection", (socket) => {
                 name: userName,
                 state: "waiting" // Initial state
             };
-            users[socket.id]=user;
+            users[socket.id] = user;
             if (Object.values(users).length === 2) {
                 // If there are exactly 2 users, set their state to 'ready'
                 Object.values(users).forEach(user => {
@@ -67,7 +68,7 @@ io.on("connection", (socket) => {
 
     socket.on("start-game", () => {
         const readyUsers = Object.values(users).filter(user => user.state === "ready");
-        console.log(readyUsers)
+
         if (readyUsers.length === 2) {
             const initiatingUser = readyUsers.find(user => user.id === socket.id);
             const otherUser = readyUsers.find(user => user.id !== socket.id);
@@ -75,6 +76,7 @@ io.on("connection", (socket) => {
                 const roomName = "room-" + Math.random().toString(36).substr(2, 5); // Generate a random room name
                 initiatingUser.state = "playing";
                 initiatingUser.room = roomName;
+                rooms[roomName] = { p1Choice: null, p2Choice: null }; // Initialize room object
                 io.emit("users-update", users); // Update user states for all clients
                 io.to(initiatingUser.id).emit("game-started", roomName); // Inform the initiating user about the game start
 
@@ -88,7 +90,6 @@ io.on("connection", (socket) => {
     });
 
     socket.on("join-room", (roomName) => {
-        console.log('joining')
         socket.join(roomName);
         const user = Object.values(users).find(user => user.id === socket.id);
         if (user) {
@@ -98,7 +99,66 @@ io.on("connection", (socket) => {
         }
     });
 
+    socket.on("p1Choice", (data) => {
+        if (getUserState(socket.id) === "playing") {
+            let rpsValue = data.rpsValue;
+            if (rooms[data?.roomUniqueId]) {
+                rooms[data.roomUniqueId].p1Choice = rpsValue;
+                if (rooms[data.roomUniqueId].p2Choice != null) {
+                    declareWinner(data.roomUniqueId);
+                }
+            }
+        }
+    });
 
+    socket.on("p2Choice", (data) => {
+        if (getUserState(socket.id) === "playing") {
+            let rpsValue = data.rpsValue;
+            if (rooms[data?.roomUniqueId]) {
+                rooms[data.roomUniqueId].p2Choice = rpsValue;
+                if (rooms[data.roomUniqueId].p1Choice != null) {
+                    declareWinner(data.roomUniqueId);
+                }
+            }
+        }
+    });
+
+    function getUserState(userId) {
+        const user = Object.values(users).find(user => user.id === userId);
+        return user ? user.state : null;
+    }
+
+    function declareWinner(roomUniqueId) {
+        let p1Choice = rooms[roomUniqueId].p1Choice;
+        let p2Choice = rooms[roomUniqueId].p2Choice;
+        let winner = null;
+        if (p1Choice === p2Choice) {
+            winner = "d";
+        } else if (p1Choice == "Paper") {
+            if (p2Choice == "Scissor") {
+                winner = "p2";
+            } else {
+                winner = "p1";
+            }
+        } else if (p1Choice == "Rock") {
+            if (p2Choice == "Paper") {
+                winner = "p2";
+            } else {
+                winner = "p1";
+            }
+        } else if (p1Choice == "Scissor") {
+            if (p2Choice == "Rock") {
+                winner = "p2";
+            } else {
+                winner = "p1";
+            }
+        }
+        io.emit("result", {
+            winner: winner
+        });
+        rooms[roomUniqueId].p1Choice = null;
+        rooms[roomUniqueId].p2Choice = null;
+    }
 
     socket.on("send-message", (message) => {
         // Broadcasting message to all users
