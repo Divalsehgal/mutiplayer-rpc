@@ -133,24 +133,24 @@ io.on("connection", (socket) => {
         let p2Choice = rooms[roomUniqueId].p2Choice;
         let winner = null;
         if (p1Choice === p2Choice) {
-            winner = "d";
+            winner = "draw";
         } else if (p1Choice == "Paper") {
             if (p2Choice == "Scissor") {
-                winner = "p2";
+                winner = "Player 1";
             } else {
-                winner = "p1";
+                winner = "Player 1";
             }
         } else if (p1Choice == "Rock") {
             if (p2Choice == "Paper") {
-                winner = "p2";
+                winner = "Player 2";
             } else {
-                winner = "p1";
+                winner = "Player 1";
             }
         } else if (p1Choice == "Scissor") {
             if (p2Choice == "Rock") {
-                winner = "p2";
+                winner = "Player 2";
             } else {
-                winner = "p1";
+                winner = "Player 1";
             }
         }
         io.emit("result", {
