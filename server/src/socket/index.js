@@ -1,6 +1,6 @@
 // src/socket/index.js
-const { attachRoomHandlers } = require("./roomHandlers");
-const { attachGameHandlers } = require("./gameHandlers");
+const { attachRoomHandlers } = require("./room/index");
+const { attachGameHandlers } = require("./game/rps/index");
 
 function initSocket({ io, roomStore, gameRegistry, logger }) {
     io.on("connection", (socket) => {

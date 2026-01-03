@@ -1,19 +1,10 @@
 // server/src/socket/roomHandlers.js
 
+const { sendError } = require("../../utils/sendError");
+const { ROOM_ENDPOINT } = require("../endpoint");
+
 function attachRoomHandlers({ io, socket, roomStore, gameRegistry, logger }) {
-    //
-    // Helper to standardize errors
-    //
-    const sendError = (cb, fallbackEvent, err, defaultCode) => {
-        const payload = err?.isRoomError
-            ? { code: err.code, error: err.message }
-            : { code: defaultCode, error: "Internal server error" };
 
-        if (cb) return cb({ ok: false, ...payload });
-        if (fallbackEvent) socket.emit(fallbackEvent, payload);
-    };
-
-    //
     // Emit serialized room state to all clients inside the room
     //
     const emitRoomUpdate = (roomId) => {
@@ -24,7 +15,7 @@ function attachRoomHandlers({ io, socket, roomStore, gameRegistry, logger }) {
     // ---------------------------------------------------------------------------
     // REGISTER
     // ---------------------------------------------------------------------------
-    socket.on("register", ({ playerUid, name } = {}, cb) => {
+    socket.on(ROOM_ENDPOINT.REGISTER, ({ playerUid, name } = {}, cb) => {
         try {
             if (!playerUid) {
                 throw {
@@ -64,7 +55,7 @@ function attachRoomHandlers({ io, socket, roomStore, gameRegistry, logger }) {
     // CREATE-ROOM
     // ---------------------------------------------------------------------------
     socket.on(
-        "create-room",
+        ROOM_ENDPOINT.CREATE_ROOM,
         ({ gameType = "RPS", maxPlayers = 2, allowSpectators = true } = {}, cb) => {
             try {
                 const playerUid = socket.data.playerUid;
@@ -119,7 +110,7 @@ function attachRoomHandlers({ io, socket, roomStore, gameRegistry, logger }) {
     // ---------------------------------------------------------------------------
     // JOIN-ROOM (as player or spectator)
     // ---------------------------------------------------------------------------
-    socket.on("join-room", ({ roomId } = {}, cb) => {
+    socket.on(ROOM_ENDPOINT.JOIN_ROOM, ({ roomId } = {}, cb) => {
         try {
             const playerUid = socket.data.playerUid;
             const name = socket.data.name || "Player";
@@ -157,7 +148,7 @@ function attachRoomHandlers({ io, socket, roomStore, gameRegistry, logger }) {
     // ---------------------------------------------------------------------------
     // REQUEST PLAYER SLOT (spectator → player)
     // ---------------------------------------------------------------------------
-    socket.on("request-player-slot", ({ roomId } = {}, cb) => {
+    socket.on(ROOM_ENDPOINT.REQUEST_PLAYER_SLOT, ({ roomId } = {}, cb) => {
         try {
             const playerUid = socket.data.playerUid;
             if (!playerUid) {
@@ -192,7 +183,7 @@ function attachRoomHandlers({ io, socket, roomStore, gameRegistry, logger }) {
     // ---------------------------------------------------------------------------
     // LEAVE ROOM
     // ---------------------------------------------------------------------------
-    socket.on("leave-room", (_, cb) => {
+    socket.on(ROOM_ENDPOINT.LEAVE_ROOM, (_, cb) => {
         try {
             const playerUid = socket.data.playerUid;
             if (!playerUid) return cb?.({ ok: true });
@@ -223,7 +214,7 @@ function attachRoomHandlers({ io, socket, roomStore, gameRegistry, logger }) {
     // ---------------------------------------------------------------------------
     // DISCONNECT
     // ---------------------------------------------------------------------------
-    socket.on("disconnect", () => {
+    socket.on(ROOM_ENDPOINT.DISCONNECT, () => {
         try {
             const result = roomStore.markSocketDisconnected(socket.id);
             if (!result) return;

@@ -1,10 +1,12 @@
 // server/src/socket/gameHandlers.js
 
+const { GAME_ENDPOINT } = require("../../endpoint");
+
 function attachGameHandlers({ io, socket, roomStore, gameRegistry, logger }) {
     // ---------------------------------------------------------------------------
     // GAME MOVE
     // ---------------------------------------------------------------------------
-    socket.on("game-move", ({ roomId, move } = {}, cb) => {
+    socket.on(GAME_ENDPOINT.GAME_MOVE, ({ roomId, move } = {}, cb) => {
         try {
             const playerUid = socket.data.playerUid;
             if (!playerUid) throw { code: "NOT_REGISTERED", message: "Not registered" };
@@ -54,7 +56,7 @@ function attachGameHandlers({ io, socket, roomStore, gameRegistry, logger }) {
     // GAME SYNC
     // Allows reconnecting players to fetch current game state
     // ---------------------------------------------------------------------------
-    socket.on("game-sync", ({ roomId } = {}, cb) => {
+    socket.on(GAME_ENDPOINT.GAME_SYNC, ({ roomId } = {}, cb) => {
         try {
             const playerUid = socket.data.playerUid;
 
