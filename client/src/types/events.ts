@@ -2,32 +2,28 @@ import type { RoomState, RoundResult, JoinRoomResponse } from "@/types";
 
 // Events sent from SERVER -> CLIENT
 export interface ServerToClientEvents {
-  "room-update": RoomState | null;
-  "round-result": RoundResult;
-  "room-closed": { roomId: string };
-  "player-state-update": { roomId: string; playerUid: string; state: string };
+  "room-update": (updated: RoomState | null) => void;
+  "round-result": (result: RoundResult) => void;
+  "room-closed": (data: { roomId: string }) => void;
+  "player-state-update": (data: { roomId: string; playerUid: string; status: string }) => void;
+  "ROOM_WARNING": (data: { secondsLeft: number }) => void;
 }
 
 // Events sent from CLIENT -> SERVER
 export interface ClientToServerEvents {
-  register: { playerUid: string; name: string } & {
-    cb?: (res: { ok: boolean; [k: string]: any }) => void;
-  };
-  "create-room": {
+  register: (data: { playerUid: string; name: string }, cb?: (res: { ok: boolean; [k: string]: unknown }) => void) => void;
+  "create-room": (data: {
+    hostName?: string;
     gameType?: string;
     maxPlayers?: number;
     allowSpectators?: boolean;
-  } & { cb?: (res: JoinRoomResponse & { roomId?: string }) => void };
-  "join-room": { roomId: string; playerUid?: string; name?: string } & {
-    cb?: (res: JoinRoomResponse) => void;
-  };
-  "request-player-slot": { roomId: string; playerUid?: string } & {
-    cb?: (res: { ok: boolean; [k: string]: any }) => void;
-  };
-  "game-move": { roomId: string; move: string };
-  "leave-room": {} & {
-    cb?: (res: { ok: boolean; roomDeleted?: boolean }) => void;
-  };
+  }, cb?: (res: JoinRoomResponse & { roomId?: string }) => void) => void;
+  "join-room": (data: { roomId: string; playerUid?: string; name?: string }, cb?: (res: JoinRoomResponse) => void) => void;
+  "request-player-slot": (data: { roomId: string; playerUid?: string }, cb?: (res: { ok: boolean; [k: string]: unknown }) => void) => void;
+  "game-move": (data: { roomId: string; move: string }) => void;
+  "game-ready": (data: { roomId: string }) => void;
+  "leave-room": (data: { roomId: string }, cb?: (res: { ok: boolean; roomDeleted?: boolean }) => void) => void;
+  "extend-room": (data: { roomId: string }, cb?: (res: { ok: boolean }) => void) => void;
 }
 
 export default {} as const;

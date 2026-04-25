@@ -14,5 +14,12 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
+    '@typescript-eslint/no-magic-numbers': ['error', {
+      ignore: [0, 1],
+      ignoreArrayIndexes: true,
+      ignoreDefaultValues: true,
+      enforceConst: true,
+    }],
+    '@typescript-eslint/no-explicit-any': 'error',
   },
 }

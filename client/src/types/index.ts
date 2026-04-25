@@ -1,38 +1,63 @@
 export interface ParticipantBase {
   playerUid: string;
   name: string;
-  // role is the discriminant used for narrowing
   role: string;
+  status: "online" | "offline";
 }
 
 export interface Player extends ParticipantBase {
   role: "player";
-  state: "connected" | "disconnected";
   socketId?: string | null;
-  // player-specific fields
   score?: number;
 }
 
 export interface Spectator extends ParticipantBase {
   role: "spectator";
-  state: "connected" | "disconnected";
-  // spectator-specific fields (example)
   watchPreferences?: {
     showScores?: boolean;
   };
 }
 
+export interface BaseGameState {
+  status: string;
+  readyPlayers: string[];
+}
+
+export interface RPSState extends BaseGameState {
+  roundCount: number;
+  playerChoices: Record<string, string>;
+  lastResult?: RoundResult | null;
+}
+
+export interface TicTacToeState extends BaseGameState {
+  board: (string | null)[];
+  currentTurn: string | null;
+  winner: string | null;
+  isDraw?: boolean;
+  logs: string[];
+}
+
+export interface SnakeLadderState extends BaseGameState {
+  positions: Record<string, number>;
+  currentTurn: string | null;
+  lastRoll: number | null;
+  winner: string | null;
+  logs: string[];
+}
+
+export type GameState = RPSState | TicTacToeState | SnakeLadderState;
+
 export type Participant = Player | Spectator;
 
 export interface RoomState {
   id: string;
-  gameType: string;
+  gameType: "RPS" | "SNAKE_LADDER" | "TIC_TAC_TOE";
   status: string;
   maxPlayers: number;
   allowSpectators: boolean;
   players: Participant[];
   updatedAt: number;
-  gameState?: any;
+  gameState?: GameState;
 }
 
 export interface RoundResult {
@@ -41,6 +66,20 @@ export interface RoundResult {
   isDraw: boolean;
   choices: Record<string, string>;
   scores: Record<string, number>;
+  playerNames?: Record<string, string>;
+}
+
+export interface BaseArenaProps {
+  room: RoomState;
+  gameState: GameState;
+  playerUid: string;
+  opponent?: Participant;
+  isPlayer: boolean;
+  isRoundOver?: boolean;
+  handleRPSMove?: (move: string) => void;
+  handleSnakeLadderMove?: () => void;
+  handleTicTacToeMove?: (index: number) => void;
+  handleNextRound: () => void;
 }
 
 export interface JoinRoomResponse {
@@ -52,8 +91,6 @@ export interface JoinRoomResponse {
 }
 
 export type Maybe<T> = T | null | undefined;
-
-export default {} as const;
 
 // Type guards
 export function isPlayer(p: Participant): p is Player {
