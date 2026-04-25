@@ -55,13 +55,13 @@ export default function LobbyScreen() {
       >
         <Card className="w-full border-t-2 border-t-primary/30 overflow-hidden">
           <CardHeader className="text-center">
-            <CardTitle className="text-5xl mb-2 font-black tracking-tighter">NEXUS</CardTitle>
+            <CardTitle className="text-5xl mb-2 font-black tracking-tighter">Dice & Draws</CardTitle>
             <p className="text-muted-foreground/70 font-medium tracking-[0.3em] text-[10px] uppercase">Multiplayer Arena</p>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Identity Section (Primary Gate) */}
             <div className="space-y-3">
-              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Identity Protocol</label>
+              <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Alias</label>
               <Input 
                 placeholder="ENTER YOUR ALIAS..." 
                 value={playerName} 
@@ -81,7 +81,7 @@ export default function LobbyScreen() {
             >
               {/* Conditional Join Section */}
               <div className="space-y-3">
-                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Join Operation</label>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Join</label>
                 <div className="flex gap-3">
                   <Input 
                     placeholder="ROOM CODE" 
@@ -105,14 +105,9 @@ export default function LobbyScreen() {
                 }}
                 className="overflow-hidden space-y-6"
               >
-                <div className="relative flex items-center py-2">
-                  <div className="flex-grow border-t border-white/5"></div>
-                  <span className="flex-shrink-0 mx-4 text-muted-foreground/30 text-[9px] font-bold tracking-[0.3em] uppercase italic">Deploy New Interface</span>
-                  <div className="flex-grow border-t border-white/5"></div>
-                </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Selection Cycle</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest pl-1">Rounds</label>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       { id: 'RPS', label: 'RPS' },

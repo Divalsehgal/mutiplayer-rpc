@@ -47,7 +47,7 @@ export default function GameScreen() {
         <div className="text-8xl mb-6">🏜️</div>
         <h2 className="text-4xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-destructive to-destructive/50 uppercase tracking-tighter">Match Abandoned</h2>
         <p className="text-muted-foreground mb-8 max-w-sm font-medium tracking-wide">The arena has been decommissioned or the code was invalid. All data has been purged.</p>
-        <Button variant="glow" onClick={() => navigate('/')} className="px-12 font-black uppercase tracking-widest h-14">Return to Nexus</Button>
+        <Button variant="glow" onClick={() => navigate('/')} className="px-12 font-black uppercase tracking-widest h-14">Return to Arena</Button>
       </motion.div>
     </div>
   );

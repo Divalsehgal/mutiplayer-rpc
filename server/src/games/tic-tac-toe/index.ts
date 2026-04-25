@@ -49,9 +49,10 @@ export const ticTacToeGameHandler = {
                     board: Array(9).fill(null),
                     currentTurn: players[0].playerUid,
                     winner: null,
+                    isDraw: false,
                     readyPlayers: [],
                     logs: ["Grid reset. New cycle initialized."]
-                }
+                } as TicTacToeState
             };
         }
 
