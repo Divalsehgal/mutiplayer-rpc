@@ -28,7 +28,7 @@ describe('GameRoutes', () => {
     it('should delegate to controller', () => {
         registerGameRoutes(mockIo, mockSocket, mockController);
 
-        const handlers: Record<string, Function> = {};
+        const handlers: Record<string, (...args: any[]) => void> = {};
         (mockSocket.on as jest.Mock).mock.calls.forEach(([event, handler]) => {
             handlers[event] = handler;
         });

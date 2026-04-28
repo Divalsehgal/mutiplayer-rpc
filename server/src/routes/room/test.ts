@@ -36,7 +36,7 @@ describe('RoomRoutes', () => {
         registerRoomRoutes(mockIo, mockSocket, mockController);
 
         // Get the callbacks passed to socket.on
-        const eventHandlers: Record<string, Function> = {};
+        const eventHandlers: Record<string, (...args: any[]) => void> = {};
         (mockSocket.on as jest.Mock).mock.calls.forEach(([event, handler]) => {
             eventHandlers[event] = handler;
         });
