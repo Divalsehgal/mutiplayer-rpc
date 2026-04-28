@@ -1,7 +1,20 @@
 import { Socket } from "socket.io";
+import { isRoomError } from "../repositories/room/utils/error";
 
-export const sendError = (cb: any, fallbackEvent: string | null, err: any, defaultCode: string, socket?: Socket) => {
-    const payload = err?.isRoomError
+interface ErrorResponse {
+    ok: false;
+    code: string;
+    error: string;
+}
+
+export const sendError = (
+    cb: ((res: ErrorResponse) => void) | undefined,
+    fallbackEvent: string | null,
+    err: unknown,
+    defaultCode: string,
+    socket?: Socket
+) => {
+    const payload = isRoomError(err)
         ? { code: err.code, error: err.message }
         : { code: defaultCode, error: "Internal server error" };
 

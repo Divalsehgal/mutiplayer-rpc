@@ -1,4 +1,4 @@
 export const logger = {
-    info: (...msg: any[]) => console.log("[INFO]", ...msg),
-    error: (...msg: any[]) => console.error("[ERROR]", ...msg),
+    info: (...msg: unknown[]) => console.log("[INFO]", ...msg),
+    error: (...msg: unknown[]) => console.error("[ERROR]", ...msg),
 };

@@ -4,5 +4,5 @@ export interface GameReadyRequest {
 
 export interface GameMoveRequest {
     roomId: string;
-    move: any;
+    move: unknown;
 }

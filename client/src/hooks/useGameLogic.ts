@@ -1,14 +1,16 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socket, getPlayerUid } from '../api/socket';
-import { useRoomStore } from '../store/roomStore';
-import { useSocketEvent } from '../hooks/useSocketEvent';
-import { RoomState } from '../types';
+import { useRoomStore } from '../store/room';
+import { useAuthStore } from '../store/auth';
+import { useSocketEvent } from './useSocketEvent';
+import { JoinRoomResponse } from '../types';
 
 export function useGameLogic(roomId: string | undefined) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const { room, setRoom, ttlWarning, setTtlWarning } = useRoomStore();
-  const playerUid = getPlayerUid();
+  const playerUid = user?._id || user?.id || getPlayerUid();
 
   // Countdown for inactivity warning
   useEffect(() => {
@@ -22,35 +24,35 @@ export function useGameLogic(roomId: string | undefined) {
   // Initial Join Logic (for refreshes)
   useEffect(() => {
     if (!roomId) return;
-    
+
     // Register and then Join
     socket.emit("register", { playerUid, name: sessionStorage.getItem('playerName') || "Player" }, () => {
-      socket.emit("join-room", { roomId, name: sessionStorage.getItem('playerName') || "Player" }, (res: any) => {
+      socket.emit("join-room", { roomId, name: sessionStorage.getItem('playerName') || "Player" }, (res: JoinRoomResponse) => {
         if (res?.ok && res.room) {
           setRoom(res.room);
         } else {
           console.error("Match not found or join failed:", res);
-          setRoom(null as any); // Explicitly mark as not found
+          setRoom(null); // Explicitly mark as not found
         }
       });
     });
   }, [roomId, playerUid, setRoom]);
 
-  useSocketEvent<RoomState>("room-update", (updatedRoom) => {
+  useSocketEvent("room-update", (updatedRoom) => {
     if (!updatedRoom) {
-      setRoom(null as any);
+      setRoom(null);
       return;
     }
     setRoom(updatedRoom);
   });
 
-  useSocketEvent<{ secondsLeft: number }>("ROOM_WARNING", ({ secondsLeft }) => {
+  useSocketEvent("ROOM_WARNING", ({ secondsLeft }) => {
     setTtlWarning(secondsLeft);
   });
 
-  useSocketEvent<{ code: string; message: string }>("room-error", (err) => {
+  useSocketEvent("room-error", (err) => {
     if (err.code === "ROOM_EXPIRED") {
-      setRoom(null as any);
+      setRoom(null);
       setTimeout(() => navigate('/'), 3000);
     }
   });

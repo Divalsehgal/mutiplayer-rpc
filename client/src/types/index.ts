@@ -3,6 +3,7 @@ export interface ParticipantBase {
   name: string;
   role: string;
   status: "online" | "offline";
+  avatar?: string;
 }
 
 export interface Player extends ParticipantBase {
@@ -21,6 +22,7 @@ export interface Spectator extends ParticipantBase {
 export interface BaseGameState {
   status: string;
   readyPlayers: string[];
+  timer?: number;
 }
 
 export interface RPSState extends BaseGameState {
@@ -99,4 +101,8 @@ export function isPlayer(p: Participant): p is Player {
 
 export function isSpectator(p: Participant): p is Spectator {
   return p.role === "spectator";
+}
+
+export function hasRoundCount(state: GameState): state is RPSState {
+  return (state as RPSState).roundCount !== undefined;
 }

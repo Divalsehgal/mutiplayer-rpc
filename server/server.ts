@@ -2,12 +2,18 @@ import express from "express";
 import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
+import cookieParser from "cookie-parser"
+import mongoose from 'mongoose'
+import dotenv from 'dotenv'
+
+dotenv.config();
 
 // Config
 import { PORT, CORS_ORIGIN, ROOM_IDLE_MS, GRACE_PERIOD_MS } from "./src/config";
 
+// ... (rest of the imports)
 // Repositories
-import { RoomRepository } from "./src/repositories/RoomRepository";
+import { RoomRepository } from "./src/repositories/room";
 
 // Socket handlers
 import { initSocket } from "./src/socket/index";
@@ -18,6 +24,10 @@ import { gameRegistry } from "./src/games/registry";
 // Logger
 import { logger } from "./src/utils/logger";
 
+// Routes
+import authRouter from "./src/routes/auth";
+import userRouter from "./src/routes/user";
+
 const app = express();
 
 app.use(
@@ -27,6 +37,12 @@ app.use(
         credentials: true,
     })
 );
+
+app.use(express.json());
+app.use(cookieParser())
+
+app.use("/auth", authRouter);
+app.use("/user", userRouter);
 
 const server = http.createServer(app);
 
@@ -63,7 +79,7 @@ setInterval(() => {
 
     // TTL Warnings and Expired cleanup
     const { expired, warnings } = roomStore.checkRoomTTLs(60 * 1000); // 60s warning
-    
+
     warnings.forEach(({ roomId, secondsLeft }) => {
         io.to(roomId).emit("ROOM_WARNING", { type: "EXPIRING_SOON", secondsLeft });
     });
@@ -85,6 +101,21 @@ setInterval(() => {
     });
 }, 5000); // Check every 5s
 
-server.listen(PORT, () => {
-    logger.info(`🚀 Server running at http://localhost:${PORT}`);
-});
+async function startServer() {
+    try {
+        if (!process.env.MONGO_DB_URI) {
+            throw new Error("MongoDN String is Missing")
+        }
+        await mongoose.connect(process.env.MONGO_DB_URI + process.env.DB_NAME);
+        logger.info("📡 Connected to MongoDB Cluster");
+
+        server.listen(PORT, () => {
+            logger.info(`🚀 Server running at http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        logger.error("❌ Database connection failed:", error);
+        process.exit(1);
+    }
+}
+
+startServer();

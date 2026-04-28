@@ -29,15 +29,33 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(SER
     auth: {
         playerUid: getPlayerUid(),
     },
+    withCredentials: true,
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 1000,
 });
 
-// Helper for debugging in development
-if (import.meta.env.DEV) {
-    socket.on("connect", () => console.log("🔌 Socket connected:", socket.id));
-    socket.on("disconnect", (reason) => console.log("🔌 Socket disconnected:", reason));
-}
+export const connectSocket = (token?: string, playerUid?: string) => {
+    let changed = false;
+    
+    const auth = socket.auth as { token?: string; playerUid?: string };
+    
+    if (token && auth.token !== token) {
+        auth.token = token;
+        changed = true;
+    }
+    
+    if (playerUid && auth.playerUid !== playerUid) {
+        auth.playerUid = playerUid;
+        changed = true;
+    }
+
+    if (changed && socket.connected) {
+        // Force a fresh handshake with the new credentials
+        socket.disconnect().connect();
+    } else if (!socket.connected) {
+        socket.connect();
+    }
+};
 
 export default socket;

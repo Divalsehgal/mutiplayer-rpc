@@ -20,7 +20,7 @@ export const rpsGameHandler = {
             return { newGameState: state };
         }
 
-        let { readyPlayers = [], status: currentStatus } = state;
+        const { readyPlayers = [], status: currentStatus } = state;
         
         // Initial start from lobby: Host override
         if (currentStatus === 'waiting-for-players') {

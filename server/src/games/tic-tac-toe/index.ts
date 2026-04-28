@@ -17,7 +17,7 @@ export const ticTacToeGameHandler = {
         const players = room.players.filter((p) => p.role === 'player');
         if (players.length < 2) return { newGameState: state };
 
-        let { readyPlayers = [], status: currentStatus } = state;
+        const { readyPlayers = [], status: currentStatus } = state;
         
         // If we are starting from the lobby, the host's action is enough to start for everyone
         if (currentStatus === 'waiting-for-players') {
@@ -117,7 +117,7 @@ export const ticTacToeGameHandler = {
         return null;
     },
 
-    projectPublicState({ gameState }: { gameState: any }) {
+    projectPublicState({ gameState }: { gameState: GameState }) {
         return gameState;
     }
 };

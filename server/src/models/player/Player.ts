@@ -7,6 +7,7 @@ export interface Player {
     name: string;
     role: PlayerRole;
     status: PlayerStatus;
+    avatar?: string;
     score?: number;
     lastDisconnectedAt?: number | null;
 }

@@ -1,0 +1,31 @@
+{
+  "name": "mutiplayer-rpc-1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint:client": "cd client && yarn lint",
+    "lint:server": "cd server && yarn lint",
+    "test:client": "cd client && yarn test",
+    "test:server": "cd server && yarn test",
+    "lint": "yarn lint:client && yarn lint:server",
+    "test": "yarn test:client && yarn test:server",
+    "validate": "yarn lint && yarn test",
+    "prepare": "husky"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Divalsehgal/mutiplayer-rpc.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Divalsehgal/mutiplayer-rpc/issues"
+  },
+  "homepage": "https://github.com/Divalsehgal/mutiplayer-rpc#readme",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}

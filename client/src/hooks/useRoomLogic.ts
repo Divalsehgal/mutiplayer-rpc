@@ -1,16 +1,18 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { socket, getPlayerUid } from '../api/socket';
-import { useRoomStore } from '../store/roomStore';
-import { useSocketEvent } from '../hooks/useSocketEvent';
-import { useSocket } from '../hooks/useSocket';
-import { RoomState } from '../types';
+import { socket, getPlayerUid } from '@/api/socket';
+import { useRoomStore } from '../store/room';
+import { useSocket } from './useSocket';
+import { useSocketEvent } from './useSocketEvent';
+import { useAuthStore } from '../store/auth';
+import { JoinRoomResponse } from '../types';
 
 export function useRoomLogic(roomId: string | undefined) {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const { isConnected } = useSocket();
   const { room, setRoom, ttlWarning, setTtlWarning, reset } = useRoomStore();
-  const playerUid = getPlayerUid();
+  const playerUid = user?._id || user?.id || getPlayerUid();
 
   // Countdown for inactivity warning
   useEffect(() => {
@@ -24,41 +26,45 @@ export function useRoomLogic(roomId: string | undefined) {
   // Auto-navigate to game arena when room status transitions to playing
   useEffect(() => {
     if (room?.status === 'playing' && roomId) {
-      navigate(`/game/${roomId}`);
+      console.log(`🚀 Arena Ready for Room ${roomId}. Transitioning...`);
+      navigate(`/game/${roomId}`, { replace: true });
     }
   }, [room?.status, roomId, navigate]);
 
   useEffect(() => {
     if (!isConnected || !roomId) return;
-    
-    socket.emit("register", { playerUid, name: sessionStorage.getItem('playerName') || "Player" }, () => {
-      socket.emit("join-room", { roomId, name: sessionStorage.getItem('playerName') || "Player" }, (res: any) => {
+
+    const name = user?.user_name || sessionStorage.getItem('playerName') || "Player";
+    const avatar = user?.avatar;
+
+    socket.emit("register", { playerUid, name, avatar }, () => {
+      socket.emit("join-room", { roomId, name, avatar }, (res: JoinRoomResponse) => {
         if (res?.ok && res.room) {
           setRoom(res.room);
         } else {
           console.error("Match not found or join failed:", res.error || res);
-          setRoom(null as any);
+          setRoom(null);
         }
       });
     });
-  }, [isConnected, roomId, playerUid, navigate, setRoom]);
+  }, [isConnected, roomId, playerUid, navigate, setRoom, user?.avatar, user?.user_name]);
 
-  useSocketEvent<RoomState>("room-update", (updatedRoom) => {
+  useSocketEvent("room-update", (updatedRoom) => {
     if (!updatedRoom) {
-      setRoom(null as any);
+      setRoom(null);
       return;
     }
     setRoom(updatedRoom);
   });
 
-  useSocketEvent<{ secondsLeft: number }>("ROOM_WARNING", ({ secondsLeft }) => {
+  useSocketEvent("ROOM_WARNING", ({ secondsLeft }) => {
     setTtlWarning(secondsLeft);
   });
 
-  useSocketEvent<{ code: string; message: string }>("room-error", (err) => {
+  useSocketEvent("room-error", (err) => {
     if (err.code === "ROOM_EXPIRED") {
-      setRoom(null as any);
-      setTimeout(() => navigate('/'), 3000); // Give user 3s to read the "Expired" state
+      setRoom(null);
+      navigate('/');
     }
   });
 

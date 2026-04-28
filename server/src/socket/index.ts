@@ -1,12 +1,13 @@
 import { Socket, Server } from "socket.io";
-import { RoomRepository } from "../repositories/RoomRepository";
+import jwt from "jsonwebtoken";
+import { RoomRepository } from "../repositories/room";
 import { GameRegistry } from "../models";
-import { RoomService } from "../services/RoomService";
-import { GameService } from "../services/GameService";
-import { RoomController } from "../controllers/RoomController";
-import { GameController } from "../controllers/GameController";
-import { registerRoomRoutes } from "../routes/room.routes";
-import { registerGameRoutes } from "../routes/game.routes";
+import { RoomService } from "../services/room";
+import { GameService } from "../services/game";
+import { RoomController } from "../controllers/room";
+import { GameController } from "../controllers/game";
+import { registerRoomRoutes } from "../routes/room";
+import { registerGameRoutes } from "../routes/game";
 import { Logger } from "../models";
 
 export function initSocket({ io, roomStore, gameRegistry, logger }: {
@@ -23,9 +24,41 @@ export function initSocket({ io, roomStore, gameRegistry, logger }: {
 
     // Authentication middleware
     io.use((socket, next) => {
-        const { playerUid } = socket.handshake.auth;
-        if (!playerUid) return next(new Error("AUTHENTICATION_FAILED: playerUid required"));
+        const { token, playerUid } = socket.handshake.auth;
+
+        logger.info(`🔑 Socket Auth Attempt - UID: ${playerUid}, HasToken: ${!!token}`);
+
+        // If JWT token is provided, verify it
+        if (token) {
+            try {
+                const secret = process.env.JWT_SECRET || "access_secret_key";
+                if (!process.env.JWT_SECRET) {
+                    logger.warn("⚠️ JWT_SECRET not found in env, using default fallback for Socket!");
+                }
+                const decoded = jwt.verify(token, secret) as { _id: string; user_name: string, avatar?: string };
+                
+                socket.data.avatar = decoded.avatar;
+
+                socket.data.user = decoded;
+                socket.data.playerUid = decoded._id;
+
+                logger.info(`✅ Socket Authenticated: ${decoded.user_name} (${decoded._id})`);
+                return next();
+            } catch (err) {
+                const error = err as Error;
+                logger.error(`❌ Socket JWT Verification Failed: ${error.message}`);
+                return next(new Error(`AUTHENTICATION_FAILED: ${error.message}`));
+            }
+        }
+
+        // Fallback to anonymous playerUid 
+        if (!playerUid) {
+            logger.error(`❌ Socket Auth Failed: No token and no playerUid`);
+            return next(new Error("AUTHENTICATION_FAILED: Authentication required"));
+        }
+
         socket.data.playerUid = playerUid;
+        logger.info(`👤 Socket Connected as Anonymous: ${playerUid}`);
         next();
     });
 

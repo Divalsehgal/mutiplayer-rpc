@@ -3,12 +3,13 @@ export * from "./room/Room";
 export * from "./game/Game";
 
 import { Server } from "socket.io";
-import { RoomRepository } from "../repositories/RoomRepository";
+import { RoomRepository } from "../repositories/room";
 import { GameRegistry } from "./game/Game";
 
 export interface Logger {
-    info: (...msg: any[]) => void;
-    error: (...msg: any[]) => void;
+    info: (...msg: unknown[]) => void;
+    warn: (...msg: unknown[]) => void;
+    error: (...msg: unknown[]) => void;
 }
 
 export interface InitSocketArgs {

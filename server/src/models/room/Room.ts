@@ -9,6 +9,8 @@ export interface Room {
     status: RoomStatus;
     maxPlayers: number;
     allowSpectators: boolean;
+    isPublic: boolean;
+    hostName: string;
     players: Player[];
     gameState: GameState;
     createdAt: number;
@@ -24,9 +26,12 @@ export interface SerializedRoom {
     status: string;
     maxPlayers: number;
     allowSpectators: boolean;
+    isPublic: boolean;
+    hostName: string;
     players: Omit<Player, "socketId">[];
     updatedAt: number;
     expiresAt?: number;
     hasSentWarning?: boolean;
     gameState: GameState;
 }
+

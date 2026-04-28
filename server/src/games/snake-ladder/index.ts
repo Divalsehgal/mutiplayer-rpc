@@ -23,7 +23,7 @@ export const snakeLadderGameHandler = {
       return { newGameState: gameState };
     }
 
-    let { readyPlayers = [], status: currentStatus } = gameState;
+    const { readyPlayers = [], status: currentStatus } = state;
 
     // Initial start from lobby: Host override
     if (currentStatus === 'waiting-for-players') {

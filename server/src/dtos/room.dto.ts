@@ -1,6 +1,9 @@
+import { SerializedRoom } from "../models/room/Room";
+
 export interface CreateRoomRequest {
     hostName: string;
     gameType: string;
+    isPublic?: boolean;
 }
 
 export interface JoinRoomRequest {
@@ -19,6 +22,12 @@ export interface ExtendRoomRequest {
 export interface RoomResponse {
     ok: boolean;
     roomId?: string;
-    room?: any;
+    room?: SerializedRoom | null;
+    error?: string;
+}
+
+export interface PublicRoomsResponse {
+    ok: boolean;
+    rooms?: SerializedRoom[];
     error?: string;
 }
