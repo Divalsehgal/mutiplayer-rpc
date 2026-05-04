@@ -76,4 +76,123 @@ describe('TicTacToe Game Handler', () => {
         expect(result.newGameState.isDraw).toBe(true);
         expect(result.newGameState.status).toBe('finished');
     });
+
+    it('should handle rematch ready state', () => {
+        const room: any = { 
+            id: 'r1', 
+            players: [
+                { playerUid: 'u1', role: 'player' }, 
+                { playerUid: 'u2', role: 'player' }
+            ] 
+        };
+        const state: any = { status: 'finished', readyPlayers: [] };
+        
+        // First player ready
+        const result1 = ticTacToeGameHandler.handleReady({ room, gameState: state, playerUid: 'u1' });
+        expect(result1.newGameState.status).toBe('finished');
+        expect(result1.newGameState.readyPlayers).toContain('u1');
+
+        // Second player ready
+        const result2 = ticTacToeGameHandler.handleReady({ room, gameState: result1.newGameState, playerUid: 'u2' });
+        expect(result2.newGameState.status).toBe('playing');
+        expect(result2.newGameState.readyPlayers.length).toBe(0);
+    });
+
+    it('should reject invalid moves', () => {
+        const room: any = { 
+            players: [
+                { playerUid: 'u1', role: 'player' }, 
+                { playerUid: 'u2', role: 'player' }
+            ] 
+        };
+        const state: any = { 
+            status: 'playing', 
+            board: ['X', null, null, null, null, null, null, null, null], 
+            currentTurn: 'u1' 
+        };
+
+        // Move to occupied spot
+        const result1 = ticTacToeGameHandler.handleMove({ room, gameState: state, playerUid: 'u1', move: 0 });
+        expect(result1.newGameState).toBe(state);
+
+        // Move by wrong player
+        const result2 = ticTacToeGameHandler.handleMove({ room, gameState: state, playerUid: 'u2', move: 1 });
+        expect(result2.newGameState).toBe(state);
+
+        // Move out of bounds
+        const result3 = ticTacToeGameHandler.handleMove({ room, gameState: state, playerUid: 'u1', move: 10 });
+        expect(result3.newGameState).toBe(state);
+    });
+
+    it('should project public state', () => {
+        const state: any = { board: [] };
+        expect(ticTacToeGameHandler.projectPublicState({ gameState: state })).toBe(state);
+    });
+
+    it('should return same state if less than 2 players in handleReady', () => {
+        const room: any = { players: [{ playerUid: 'u1', role: 'player' }] };
+        const state = ticTacToeGameHandler.getInitialState();
+        const result = ticTacToeGameHandler.handleReady({ room, gameState: state, playerUid: 'u1' });
+        expect(result.newGameState).toBe(state);
+    });
+
+    it('should not add player multiple times to readyPlayers', () => {
+        const room: any = { 
+            players: [
+                { playerUid: 'u1', role: 'player' }, 
+                { playerUid: 'u2', role: 'player' }
+            ] 
+        };
+        const state: any = { status: 'finished', readyPlayers: ['u1'] };
+        const result = ticTacToeGameHandler.handleReady({ room, gameState: state, playerUid: 'u1' });
+        expect(result.newGameState.readyPlayers.length).toBe(1);
+    });
+
+    it('should handle move with less than 2 players', () => {
+        const room: any = { players: [{ playerUid: 'u1', role: 'player' }] };
+        const state: any = { status: 'playing', board: Array(9).fill(null), currentTurn: 'u1' };
+        const result = ticTacToeGameHandler.handleMove({ room, gameState: state, playerUid: 'u1', move: 0 });
+        expect(result.newGameState.status).toBe('waiting-for-players');
+    });
+
+    it('should handle string move index', () => {
+        const room: any = { 
+            players: [
+                { playerUid: 'u1', role: 'player' }, 
+                { playerUid: 'u2', role: 'player' }
+            ] 
+        };
+        const state: any = { status: 'playing', board: Array(9).fill(null), currentTurn: 'u1' };
+        const result = ticTacToeGameHandler.handleMove({ room, gameState: state, playerUid: 'u1', move: '0' });
+        expect(result.newGameState.board[0]).toBe('X');
+    });
+
+    it('should handle guest move and logs', () => {
+        const room: any = { 
+            players: [
+                { playerUid: 'u1', role: 'player' }, 
+                { playerUid: 'u2', role: 'player' }
+            ] 
+        };
+        const state: any = { status: 'playing', board: Array(9).fill(null), currentTurn: 'u2' };
+        const result = ticTacToeGameHandler.handleMove({ room, gameState: state, playerUid: 'u2', move: 1 });
+        expect(result.newGameState.board[1]).toBe('O');
+        expect(result.newGameState.logs[0]).toContain('BRAVO');
+    });
+
+    it('should return same state if game is finished in handleMove', () => {
+
+        const room: any = { 
+            players: [
+                { playerUid: 'u1', role: 'player' }, 
+                { playerUid: 'u2', role: 'player' }
+            ] 
+        };
+        const state: any = { status: 'finished', board: Array(9).fill(null), currentTurn: 'u1' };
+        const result = ticTacToeGameHandler.handleMove({ room, gameState: state, playerUid: 'u1', move: 0 });
+        expect(result.newGameState).toBe(state);
+    });
 });
+
+
+

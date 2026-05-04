@@ -1,4 +1,4 @@
-import { signinHandler, logoutHandler, refreshTokenHandler, googleAuthHandler } from './index';
+import { signinHandler, signupHandler, logoutHandler, refreshTokenHandler, googleAuthHandler } from './index';
 import { AuthService } from '../../services/auth';
 import AuthModel from '../../models/auth';
 import UserModel from '../../models/user';
@@ -7,13 +7,18 @@ jest.mock('../../services/auth');
 jest.mock('../../models/auth');
 jest.mock('../../models/user');
 
-jest.mock('google-auth-library', () => ({
-    OAuth2Client: jest.fn().mockImplementation(() => ({
-        verifyIdToken: jest.fn().mockResolvedValue({
-            getPayload: () => ({ email: 'test@gmail.com', name: 'Test', sub: 'google123', picture: 'pic' })
-        })
-    }))
-}));
+jest.mock('google-auth-library', () => {
+    const mockVerify = jest.fn().mockResolvedValue({
+        getPayload: () => ({ email: 'test@gmail.com', name: 'Test', sub: 'google123', picture: 'pic' })
+    });
+    return {
+        OAuth2Client: jest.fn().mockImplementation(() => ({
+            verifyIdToken: mockVerify
+        }))
+    };
+});
+
+
 
 describe('AuthController', () => {
     let mockReq: any;
@@ -36,6 +41,8 @@ describe('AuthController', () => {
         mockNext = jest.fn();
         jest.clearAllMocks();
     });
+
+
 
     it('should handle google sso login', async () => {
         mockReq.body.idToken = 'valid_token';
@@ -103,6 +110,30 @@ describe('AuthController', () => {
         expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ success: false }));
     });
 
+    it('should return 400 if idToken is missing in googleAuth', async () => {
+        mockReq.body.idToken = undefined;
+        await googleAuthHandler(mockReq, mockRes);
+        expect(mockRes.status).toHaveBeenCalledWith(400);
+        expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Google ID Token is required" }));
+    });
+
+    it('should return 401 if payload is missing email in googleAuth', async () => {
+        mockReq.body.idToken = 'token';
+        const { OAuth2Client } = require('google-auth-library');
+        const mockVerify = (new OAuth2Client()).verifyIdToken;
+        mockVerify.mockResolvedValueOnce({
+            getPayload: () => ({ email: null })
+        });
+        
+        await googleAuthHandler(mockReq, mockRes);
+        expect(mockRes.status).toHaveBeenCalledWith(401);
+        expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ message: "Invalid Google token payload" }));
+    });
+
+
+
+
+
     it('should fail refresh if token missing', async () => {
         mockReq.cookies.refresh_token = undefined;
         await refreshTokenHandler(mockReq, mockRes);
@@ -141,6 +172,50 @@ describe('AuthController', () => {
         expect(AuthModel.create).toHaveBeenCalled();
     });
 
+    it('should update missing googleId and avatar on existing auth/user', async () => {
+        mockReq.body.idToken = 'token';
+        const mockUser = { _id: 'u1', user_name: 'test', avatar: null, save: jest.fn() };
+        const mockAuth = { _id: 'a1', googleId: null, save: jest.fn(), getJWT: jest.fn().mockReturnValue({}) };
+        (AuthModel.findOne as jest.Mock).mockResolvedValue(mockAuth);
+        (UserModel.findOne as jest.Mock).mockResolvedValue(mockUser);
+        
+        await googleAuthHandler(mockReq, mockRes);
+        expect(mockAuth.googleId).toBe('google123');
+        expect(mockUser.avatar).toBe('pic');
+        expect(mockAuth.save).toHaveBeenCalled();
+        expect(mockUser.save).toHaveBeenCalled();
+    });
+
+
+    it('should fallback to email split for username if name missing', async () => {
+        mockReq.body.idToken = 'token';
+        const { OAuth2Client } = require('google-auth-library');
+        const mockVerify = (new OAuth2Client()).verifyIdToken;
+        mockVerify.mockResolvedValueOnce({
+            getPayload: () => ({ email: 'no_name@test.com' }) // no name
+        });
+        
+        (AuthModel.findOne as jest.Mock).mockResolvedValue(null);
+        (UserModel.findOne as jest.Mock).mockResolvedValue(null);
+        (UserModel.create as jest.Mock).mockResolvedValue({ _id: 'u1', user_name: 'no_name' });
+        (AuthModel.create as jest.Mock).mockResolvedValue({ getJWT: jest.fn().mockReturnValue({}), save: jest.fn() });
+
+        await googleAuthHandler(mockReq, mockRes);
+        expect(UserModel.create).toHaveBeenCalledWith(expect.objectContaining({ user_name: 'no_name' }));
+    });
+
+    it('should not update avatar if already exists', async () => {
+        mockReq.body.idToken = 'token';
+        const mockUser = { _id: 'u1', user_name: 'test', avatar: 'existing', save: jest.fn() };
+        const mockAuth = { _id: 'a1', save: jest.fn(), getJWT: jest.fn().mockReturnValue({}) };
+        (AuthModel.findOne as jest.Mock).mockResolvedValue(mockAuth);
+        (UserModel.findOne as jest.Mock).mockResolvedValue(mockUser);
+        
+        await googleAuthHandler(mockReq, mockRes);
+        expect(mockUser.save).not.toHaveBeenCalled();
+    });
+
+
     it('should handle new user with username collision', async () => {
         mockReq.body.idToken = 'token';
         (AuthModel.findOne as jest.Mock).mockResolvedValue(null);
@@ -154,4 +229,36 @@ describe('AuthController', () => {
         await googleAuthHandler(mockReq, mockRes);
         expect(UserModel.create).toHaveBeenCalledWith(expect.objectContaining({ user_name: expect.stringMatching(/Test_/i) }));
     });
+
+    describe('signupHandler', () => {
+        it('should register a new user successfully', async () => {
+            const mockUser = { _id: 'u1', user_name: 'testuser', email: 'test@example.com' };
+            const mockTokens = { accessToken: 'at', refreshToken: 'rt' };
+            (AuthService.prototype.signup as jest.Mock).mockResolvedValue({ user: mockUser, tokens: mockTokens });
+            
+            mockReq.body = { user_name: 'testuser', email: 'test@example.com', password: 'password123' };
+            
+            await signupHandler(mockReq, mockRes);
+            
+            expect(mockRes.status).toHaveBeenCalledWith(201);
+            expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+                success: true,
+                message: "User registered successfully"
+            }));
+            expect(mockRes.cookie).toHaveBeenCalledWith('access_token', 'at', expect.any(Object));
+        });
+
+        it('should handle signup error', async () => {
+            (AuthService.prototype.signup as jest.Mock).mockRejectedValue(new Error('User already exists'));
+            
+            await signupHandler(mockReq, mockRes);
+            
+            expect(mockRes.status).toHaveBeenCalledWith(400);
+            expect(mockRes.json).toHaveBeenCalledWith({
+                success: false,
+                message: 'User already exists'
+            });
+        });
+    });
 });
+

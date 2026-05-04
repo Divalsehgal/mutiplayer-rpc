@@ -56,4 +56,17 @@ describe('UserController', () => {
         await getProfileHandler(mockReq, mockRes);
         expect(mockRes.status).toHaveBeenCalledWith(401);
     });
+
+    it('should return 401 if user not authenticated in updateProfile', async () => {
+        mockReq.user = undefined;
+        await updateProfileHandler(mockReq, mockRes);
+        expect(mockRes.status).toHaveBeenCalledWith(401);
+    });
+
+    it('should handle update profile error', async () => {
+        (UserService.prototype.updateProfile as jest.Mock).mockRejectedValue(new Error('Update failed'));
+        await updateProfileHandler(mockReq, mockRes);
+        expect(mockRes.status).toHaveBeenCalledWith(500);
+    });
 });
+

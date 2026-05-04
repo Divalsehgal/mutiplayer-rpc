@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { AuthService } from './index';
 import AuthModel from '../../models/auth';
 import UserModel from '../../models/user';
@@ -114,5 +115,101 @@ describe('AuthService', () => {
         (SessionModel.deleteOne as jest.Mock).mockResolvedValue({ deletedCount: 1 });
         await authService.logout('token123');
         expect(SessionModel.deleteOne).toHaveBeenCalledWith({ refreshToken: 'token123' });
+    });
+
+    it('should abort transaction and throw error on signup failure', async () => {
+        const mockSession = {
+            startTransaction: jest.fn(),
+            commitTransaction: jest.fn(),
+            abortTransaction: jest.fn(),
+            endSession: jest.fn(),
+        };
+        (mongoose.startSession as jest.Mock).mockResolvedValue(mockSession);
+
+        (UserModel.findOne as jest.Mock).mockImplementation(() => {
+            throw new Error('DB Error');
+        });
+
+        await expect(authService.signup({ email: 'n@n.com', user_name: 'u', password: 'p' }))
+            .rejects.toThrow('DB Error');
+        
+        expect(mockSession.abortTransaction).toHaveBeenCalled();
+        expect(mockSession.endSession).toHaveBeenCalled();
+    });
+
+    it('should throw error if session not found on refresh', async () => {
+        (jwt.verify as jest.Mock).mockReturnValue({ _id: 'u1' });
+        (SessionModel.findOne as jest.Mock).mockResolvedValue(null);
+
+        await expect(authService.refreshTokens('token'))
+            .rejects.toThrow('Invalid or expired session');
+    });
+
+    it('should throw error if jwt verification fails on refresh', async () => {
+        (jwt.verify as jest.Mock).mockImplementation(() => {
+            throw new Error('JWT expired');
+        });
+
+        await expect(authService.refreshTokens('token'))
+            .rejects.toThrow('JWT expired');
+    });
+
+    it('should throw error if username taken on signup', async () => {
+        const mockQuery = {
+            session: jest.fn().mockResolvedValue({ user_name: 'taken' })
+        };
+        (UserModel.findOne as jest.Mock).mockReturnValue(mockQuery);
+        
+        await expect(authService.signup({ email: 'n@n.com', user_name: 'taken', password: 'p' }))
+            .rejects.toThrow('Username is already taken');
+    });
+
+    it('should throw error if email registered on signup', async () => {
+        const mockQueryNull = { session: jest.fn().mockResolvedValue(null) };
+        const mockQueryEmail = { session: jest.fn().mockResolvedValue({ email: 'taken@test.com' }) };
+        
+        (UserModel.findOne as jest.Mock).mockReturnValue(mockQueryNull);
+        (AuthModel.findOne as jest.Mock).mockReturnValue(mockQueryEmail);
+        
+        await expect(authService.signup({ email: 'taken@test.com', user_name: 'u', password: 'p' }))
+            .rejects.toThrow('Email is already registered');
+    });
+
+    it('should throw error if user profile missing on signin', async () => {
+        (AuthModel.findOne as jest.Mock).mockResolvedValue({ 
+            userId: 'u1', 
+            comparePassword: jest.fn().mockResolvedValue(true),
+            getJWT: jest.fn().mockReturnValue({})
+        });
+        (UserModel.findById as jest.Mock).mockResolvedValue(null);
+        await expect(authService.signin({ email: 't@t.com', password: 'p' }))
+            .rejects.toThrow('User profile not found');
+    });
+
+    it('should throw error if auth record missing on refresh', async () => {
+        (jwt.verify as jest.Mock).mockReturnValue({ _id: 'u1' });
+        (SessionModel.findOne as jest.Mock).mockResolvedValue({ userId: 'u1' });
+        (AuthModel.findOne as jest.Mock).mockResolvedValue(null);
+
+        await expect(authService.refreshTokens('token'))
+            .rejects.toThrow('Invalid auth record');
+    });
+
+    it('should throw error if user profile missing on refresh', async () => {
+        (jwt.verify as jest.Mock).mockReturnValue({ _id: 'u1' });
+        (SessionModel.findOne as jest.Mock).mockResolvedValue({ userId: 'u1' });
+        (AuthModel.findOne as jest.Mock).mockResolvedValue({ userId: 'u1' });
+        (UserModel.findById as jest.Mock).mockResolvedValue(null);
+
+        await expect(authService.refreshTokens('token'))
+            .rejects.toThrow('User profile not found');
+    });
+
+    it('should throw generic error if something fails on refresh', async () => {
+        (jwt.verify as jest.Mock).mockImplementation(() => {
+            throw new Error(''); // Empty message
+        });
+        await expect(authService.refreshTokens('token'))
+            .rejects.toThrow('Invalid or expired refresh token');
     });
 });

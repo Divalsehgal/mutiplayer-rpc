@@ -103,4 +103,38 @@ describe('RoomActionRepository', () => {
         const res2 = repo.leaveRoom({ roomId: room.id, playerUid: 'nonexistent' });
         expect(res2.roomDeleted).toBe(false);
     });
+
+    it('should throw if room not found on join', () => {
+        expect(() => {
+            repo.joinRoom({ roomId: 'nonexistent', playerUid: 'p2', socketId: 's2', name: 'P2' });
+        }).toThrow('Room does not exist');
+    });
+
+    it('should handle join without socketId', () => {
+        const room = repo.createRoom({
+            hostPlayerUid: 'h1',
+            socketId: null,
+            name: 'P1',
+            gameType: 'RPS',
+            hostName: 'P1',
+            initialGameState: {} as RPSState
+        });
+        const join = repo.joinRoom({ roomId: room.id, playerUid: 'p2', socketId: null, name: 'P2' });
+        expect(join.room.players).toHaveLength(2);
+    });
+
+    it('should handle leave without socketId', () => {
+        const room = repo.createRoom({
+            hostPlayerUid: 'h1',
+            socketId: null,
+            name: 'P1',
+            gameType: 'RPS',
+            hostName: 'P1',
+            initialGameState: {} as RPSState
+        });
+        repo.joinRoom({ roomId: room.id, playerUid: 'p2', socketId: null, name: 'P2' });
+        repo.leaveRoom({ roomId: room.id, playerUid: 'p2' });
+        expect(room.players).toHaveLength(1);
+    });
 });
+
