@@ -37,8 +37,15 @@ export function useRoomLogic(roomId: string | undefined) {
     const name = user?.user_name || sessionStorage.getItem('playerName') || "Player";
     const avatar = user?.avatar;
 
-    socket.emit("register", { playerUid, name, avatar }, () => {
-      socket.emit("join-room", { roomId, name, avatar }, (res: JoinRoomResponse) => {
+    type RegisterPayload = { playerUid: string; name: string; avatar?: string };
+    type JoinPayload = { roomId: string; name: string; avatar?: string };
+
+    const registerPayload: RegisterPayload = avatar ? { playerUid, name, avatar } : { playerUid, name };
+
+    socket.emit('register', registerPayload, () => {
+      const joinPayload: JoinPayload = avatar ? { roomId: roomId as string, name, avatar } : { roomId: roomId as string, name };
+
+      socket.emit('join-room', joinPayload, (res: JoinRoomResponse) => {
         if (res?.ok && res.room) {
           setRoom(res.room);
         } else {

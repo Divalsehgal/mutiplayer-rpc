@@ -1,30 +1,40 @@
-# React + TypeScript + Vite
+# Client — React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This folder contains the frontend app built with React 18, Vite, TypeScript, and Tailwind CSS. It hosts the UI, hooks, components, and game arenas used by the multiplayer platform.
 
-Currently, two official plugins are available:
+Quick commands
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+# install
+cd client && yarn install
 
-## Expanding the ESLint configuration
+# dev server
+cd client && yarn dev
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+# build for production
+cd client && yarn build
 
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+# run tests
+cd client && yarn test
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+Project structure (important folders)
+
+- `src/api/` — `apiFetch` wrapper and socket client
+- `src/components/` — UI primitives and game arena components (RPS, TicTacToe, SnakeLadder)
+- `src/hooks/` — app hooks: `useSocket`, `useRoomLogic`, `useGameLogic`, `useToast`
+- `src/screens/` — route screens (Auth, Lobby, Room, Game)
+- `src/store/` — Zustand stores for auth, room, and game UI
+- `src/types/` — shared TypeScript types and runtime guards
+
+Testing
+
+- Tests are written with `vitest`. Unit tests live beside components and hooks as `*.test.tsx`.
+
+Notes & conventions
+
+- Uses Vite's `react-jsx` transform; importing `React` in components is not required for JSX.
+- Socket event listeners are typed but some runtime casts are used where Socket.IO generics are too strict for simple test mocks.
+- `client/tsconfig.json` excludes test files from the production `tsc` build to avoid test-only globals during CI builds.
+
+If you want a README section added (deployment, environment variables), tell me which details to include.

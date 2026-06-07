@@ -1,23 +1,24 @@
-import React, { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Card, CardContent } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { useGameLogic } from '../../hooks/useGameLogic';
+import React, { useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { Card, CardContent } from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { useGameLogic } from "../../hooks/useGameLogic";
 
 // Components
-import { InactivityWarning } from '../../components/InactivityWarning';
-import { GameHeader } from '../../components/GameHeader';
-import { RPSArena } from '../../components/RPSArena';
-import { SnakeLadderArena } from '../../components/SnakeLadderArena';
-import { TicTacToeArena } from '../../components/TicTacToeArena';
+import { InactivityWarning } from "../../components/InactivityWarning";
+import { GameHeader } from "../../components/GameHeader";
+import { RPSArena } from "../../components/RPSArena";
+import { SnakeLadderArena } from "../../components/SnakeLadderArena";
+import { TicTacToeArena } from "../../components/TicTacToeArena";
 
-import { GameState, BaseArenaProps } from '../../types';
+/* eslint-disable max-lines */
+import { GameState, BaseArenaProps, hasRoundCount } from "../../types";
 
 const ARENA_COMPONENTS: Record<string, React.ComponentType<BaseArenaProps>> = {
-  'RPS': RPSArena,
-  'SNAKE_LADDER': SnakeLadderArena,
-  'TIC_TAC_TOE': TicTacToeArena,
+  RPS: RPSArena,
+  SNAKE_LADDER: SnakeLadderArena,
+  TIC_TAC_TOE: TicTacToeArena,
 };
 
 export default function GameScreen() {
@@ -32,65 +33,101 @@ export default function GameScreen() {
     handleRPSMove,
     handleSnakeLadderMove,
     handleTicTacToeMove,
-    handleNextRound
+    handleNextRound,
   } = useGameLogic(roomId);
 
   // Auto-navigate back to lobby if match is interrupted
   useEffect(() => {
-    if (room?.status === 'waiting-for-players' && roomId) {
+    if (room?.status === "waiting-for-players" && roomId) {
       navigate(`/room/${roomId}`);
     }
   }, [room?.status, roomId, navigate]);
 
-  if (room === null) return (
-    <div className="flex h-screen flex-col items-center justify-center p-6 text-center">
-      <div className="bg-blob blob-1"></div>
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="z-10 flex flex-col items-center">
-        <div className="text-8xl mb-6">🏜️</div>
-        <h2 className="text-4xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-destructive to-destructive/50 uppercase tracking-tighter">Match Abandoned</h2>
-        <p className="text-muted-foreground mb-8 max-w-sm font-medium tracking-wide">The arena has been decommissioned or the code was invalid. All data has been purged.</p>
-        <Button variant="glow" onClick={() => navigate('/')} className="px-12 font-black uppercase tracking-widest h-14">Return to Arena</Button>
-      </motion.div>
-    </div>
-  );
+  if (room === null)
+    return (
+      <div className="flex h-screen flex-col items-center justify-center p-6 text-center">
+        <div className="bg-blob blob-1"></div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="z-10 flex flex-col items-center"
+        >
+          <div className="text-8xl mb-6">🏜️</div>
+          <h2 className="text-4xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-destructive to-destructive/50 uppercase tracking-tighter">
+            Match Abandoned
+          </h2>
+          <p className="text-muted-foreground mb-8 max-w-sm font-medium tracking-wide">
+            The arena has been decommissioned or the code was invalid. All data
+            has been purged.
+          </p>
+          <Button
+            variant="glow"
+            onClick={() => navigate("/")}
+            className="px-12 font-black uppercase tracking-widest h-14"
+          >
+            Return to Arena
+          </Button>
+        </motion.div>
+      </div>
+    );
 
-  if (!room || !room.gameState) return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-    </div>
-  );
+  if (!room || !room.gameState)
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
 
   const gameState = room.gameState as GameState;
-  const isRPS = room.gameType === 'RPS';
-  const isSnakeLadder = room.gameType === 'SNAKE_LADDER';
+  const isRPS = room.gameType === "RPS";
+  const isSnakeLadder = room.gameType === "SNAKE_LADDER";
 
-  const player = room.players.find(p => p.playerUid === playerUid);
-  const opponent = room.players.find(p => p.playerUid !== playerUid && p.role === 'player');
+  const player = room.players.find((p) => p.playerUid === playerUid);
+  const opponent = room.players.find(
+    (p) => p.playerUid !== playerUid && p.role === "player",
+  );
   const isSpectator = player?.role === "spectator";
   const isPlayer = player?.role === "player";
 
   // If spectator, we watch first two players. If player, we watch ourselves + opponent.
-  const playersInRoom = room.players.filter(p => p.role === 'player');
+  const playersInRoom = room.players.filter((p) => p.role === "player");
   const watchPlayer1 = isSpectator ? playersInRoom[0] : player;
   const watchPlayer2 = isSpectator ? playersInRoom[1] : opponent;
 
-  const isRoundOver = gameState.status === 'waiting_for_ready';
+  const isRoundOver = gameState.status === "waiting_for_ready";
   const amIReady = gameState.readyPlayers?.includes(playerUid);
-  const winner = gameState.winner;
+  const winner = "winner" in gameState ? (gameState as { winner: string | null }).winner : null;
   const ArenaComponent = ARENA_COMPONENTS[room.gameType];
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen p-4 sm:p-6 bg-black overflow-hidden">
       {/* Cinematic HUD Background */}
       <div className="absolute inset-0 z-0 opacity-20">
-        <img src="/assets/general_hud_bg.png" className="w-full h-full object-cover" alt="bg" />
+        <img
+          src="/assets/general_hud_bg.png"
+          className="w-full h-full object-cover"
+          alt="bg"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/80"></div>
       </div>
 
-      <InactivityWarning ttlWarning={ttlWarning} onExtend={handleExtendSession} />
+      <InactivityWarning
+        ttlWarning={ttlWarning}
+        onExtend={handleExtendSession}
+      />
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-4xl z-20">
-        <GameHeader room={room} playerUid={playerUid} player={watchPlayer1} opponent={watchPlayer2} isSpectator={isSpectator} />
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-4xl z-20"
+      >
+        <GameHeader
+          room={room}
+          playerUid={playerUid}
+          player={watchPlayer1}
+          opponent={watchPlayer2}
+          isSpectator={isSpectator}
+        />
 
         <div className="grid grid-cols-1 gap-8">
           <Card className="border-white/5 bg-black/40 backdrop-blur-3xl overflow-hidden relative group">
@@ -129,25 +166,49 @@ export default function GameScreen() {
 
           <AnimatePresence>
             {(isRoundOver || (isSnakeLadder && !!winner)) && (
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex justify-center flex-col items-center gap-6 py-8">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex justify-center flex-col items-center gap-6 py-8"
+              >
                 <div className="flex flex-col items-center">
-                  <span className="text-[10px] font-black uppercase tracking-[0.5em] text-accent mb-2">Protocol Concluded</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.5em] text-accent mb-2">
+                    Protocol Concluded
+                  </span>
                   <h2 className="text-6xl font-black uppercase text-white tracking-[0.1em] drop-shadow-[0_0_20px_rgba(255,255,255,0.3)]">
                     {isRPS
-                      ? (gameState.lastResult?.winnerUid === playerUid ? "MISSION SUCCESS" : gameState.lastResult?.winnerUid ? "MISSION FAILED" : "STALEMATE")
-                      : (winner === playerUid ? "ELITE RANK" : "CRITICAL LOSS")
-                    }
+                      ? hasRoundCount(gameState) &&
+                        gameState.lastResult?.winnerUid === playerUid
+                        ? "MISSION SUCCESS"
+                        : hasRoundCount(gameState) &&
+                            gameState.lastResult?.winnerUid
+                          ? "MISSION FAILED"
+                          : "STALEMATE"
+                      : winner === playerUid
+                        ? "ELITE RANK"
+                        : "CRITICAL LOSS"}
                   </h2>
                 </div>
 
                 {isPlayer && isRPS && (
-                  <Button variant="glow" size="lg" className="px-16 h-16 font-black text-xl tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.2)]" disabled={amIReady} onClick={handleNextRound}>
+                  <Button
+                    variant="glow"
+                    size="lg"
+                    className="px-16 h-16 font-black text-xl tracking-widest shadow-[0_0_30px_rgba(6,182,212,0.2)]"
+                    disabled={amIReady}
+                    onClick={handleNextRound}
+                  >
                     {amIReady ? "INITIALIZING..." : "READY NEXT CYCLE"}
                   </Button>
                 )}
 
                 {isPlayer && isSnakeLadder && !!winner && (
-                  <Button variant="glow" size="lg" className="px-16 h-16 font-black text-xl tracking-widest" onClick={handleLeave}>
+                  <Button
+                    variant="glow"
+                    size="lg"
+                    className="px-16 h-16 font-black text-xl tracking-widest"
+                    onClick={handleLeave}
+                  >
                     RETURN TO BASE
                   </Button>
                 )}
@@ -157,7 +218,12 @@ export default function GameScreen() {
         </div>
 
         <div className="flex justify-center mt-12">
-          <Button variant="outline" size="sm" className="font-black tracking-[0.3em] text-[10px] uppercase opacity-30 hover:opacity-100 hover:text-destructive border-transparent hover:border-destructive/20 transition-all px-8 py-6 h-auto" onClick={handleLeave}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="font-black tracking-[0.3em] text-[10px] uppercase opacity-30 hover:opacity-100 hover:text-destructive border-transparent hover:border-destructive/20 transition-all px-8 py-6 h-auto"
+            onClick={handleLeave}
+          >
             [ DISCONNECT FROM ARENA ]
           </Button>
         </div>

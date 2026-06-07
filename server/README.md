@@ -5,20 +5,20 @@
 This server powers real-time multiplayer games (RPS, Snake, etc.) using **Socket.IO**.
 It manages:
 
-* Rooms
-* Players (including reconnect logic)
-* Spectators
-* Game state
-* Game engines (plug-and-play)
+- Rooms
+- Players (including reconnect logic)
+- Spectators
+- Game state
+- Game engines (plug-and-play)
 
 # **Server Purpose**
 
 A Node.js + Socket.IO backend responsible for:
 
-* Creating & managing rooms
-* Tracking players, spectators, reconnects
-* Routing game events to the correct engine
-* Storing game state in memory
+- Creating & managing rooms
+- Tracking players, spectators, reconnects
+- Routing game events to the correct engine
+- Storing game state in memory
 
 Useful for any turn-based or action multiplayer game.
 
@@ -55,8 +55,8 @@ Useful for any turn-based or action multiplayer game.
 
 ### **In-memory lookup maps**
 
-* `playerToRoom : playerUid → roomId`
-* `socketToPlayer : socketId → playerUid`
+- `playerToRoom : playerUid → roomId`
+- `socketToPlayer : socketId → playerUid`
 
 These allow reconnection and state persistence across tabs.
 
@@ -70,7 +70,7 @@ Player 1           Server          RPS Engine           Player 2
    |-- game-move --> |                  |                  |
    |                 |-- handleMove --> |                  |
    |                 |<-- partial ------|                  |
-   |                 |                                     
+   |                 |
    |                 |<-- waiting --------------------------|
    |                 |                                      |
    |                 |<--------- game-move -----------------|
@@ -82,54 +82,40 @@ Player 1           Server          RPS Engine           Player 2
    |                 |-- broadcast updated scores --------- |
 ```
 
----
+# Server — Express + Socket.io (TypeScript)
 
-# **Run (Quick Start)**
+This folder contains the backend code that powers rooms, players, reconnect logic, and game engines. The server is authored in TypeScript and uses `server/server.ts` as the entry point.
+
+Quick commands
 
 ```bash
-cd server
-npm install
-node server/server.js
+# install
+cd server && yarn install
+
+# dev (watch)
+cd server && yarn dev
+
+# build
+cd server && yarn build
+
+# run tests
+cd server && yarn test
 ```
 
-Server starts on the configured PORT (default: `3030` or from `.env`).
+Project structure (important folders)
 
----
+- `src/config/` — environment and constants (port, CORS, TTLs)
+- `src/socket/` — socket.io setup and event handlers (room, game routing)
+- `src/games/` — individual game engines and `gameRegistry`
+- `src/repositories/` — in-memory room repository and helpers
+- `src/controllers/` & `src/services/` — HTTP controllers and business logic
+- `src/routes/` — Express route bindings for auth/user/game endpoints
+- `src/utils/` — utilities (logger, helpers)
 
-# **Server Folder Structure**
+Design notes
 
-```
-server/
-│
-├── server.js                # Entry point
-├── package.json
-│
-└── src/
-    ├── config/
-    │   └── index.js         # PORT, CORS, timers, constants
-    │
-    ├── socket/
-    │   ├── index.js         # attachRoomHandlers + attachGameHandlers
-    │   ├── roomHandlers.js  # create/join/reconnect/spectate/leave room
-    │   ├── gameHandlers.js  # game-move / game-sync router
-    │
-    ├── core/
-    │   ├── roomStore.js     # in-memory room + player store
-    │   └── games/
-    │       ├── registry.js  # maps gameType → handler
-    │       ├── rpsGame.js
-    │       └── snakeGame.js
-    │
-    └── utils/
-        └── logger.js        # simple wrapper console logger
-```
+- Game Registry: maps `gameType` to an engine module, enabling new games to be added with minimal changes.
+- Room Store: optimized in-memory store keyed by `roomId` and `playerUid` for fast lookups and reconnection handling. Persistent storage is used for user/account data (MongoDB via Mongoose).
+- Socket events are the primary surface for real-time gameplay; HTTP routes are used for auth and account management.
 
----
-
-# **Important Notes**
-
-* `playerUid` is **persistent**, stored in browser (localStorage).
-* `socketId` is **temporary** and changes every reconnect.
-* Game state uses **playerUid** keys, never socketId.
-* Entire Room Store is **in-memory** → server restart wipes rooms (expected for MVP).
-* Multiple games are plug-and-play through the **game registry**.
+Important: the in-memory Room Store will be cleared on server restarts. For production, consider a persistence layer or shared session store.

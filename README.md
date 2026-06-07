@@ -1,117 +1,93 @@
 # 🎮 Multiplayer Game Arena
 
-[![Deployment](https://img.shields.io/badge/Deployment-Live-success)](https://mutiplayer-arena-client.onrender.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
-[![Socket.io](https://img.shields.io/badge/Socket.io-010101?style=flat&logo=socket.io&logoColor=white)](https://socket.io/)
+This repository is a monorepo that contains the frontend (`client/`) and backend (`server/`) for a real-time multiplayer platform built with Socket.io and TypeScript.
 
-A robust, real-time multiplayer gaming platform built with a modern full-stack architecture. Users can create rooms, invite friends, and play classic games like Tic-Tac-Toe, Rock-Paper-Scissors, and Snake & Ladder with seamless synchronization.
+This README provides a short overview, architecture summary, and the common commands to develop, build, and test the project.
 
 ---
 
-## 🚀 Key Features
+## Repository layout
 
-- **Real-time Synchronization**: Low-latency multiplayer experience powered by Socket.io.
-- **Dynamic Game Engines**: Plug-and-play architecture for adding new games easily.
-- **Room Management**: Create, join, and manage private/public game rooms with persistent player identities.
-- **Spectator Mode**: Allow users to watch live games without participating.
-- **Authentication**: Secure onboarding via Google OAuth 2.0 and JWT-based custom auth.
-- **Responsive UI**: Optimized for all devices using Tailwind CSS and Framer Motion.
-- **State Persistence**: Reconnection logic ensures players can resume games after a temporary disconnect.
+- `client/` — React + Vite frontend (TypeScript, Tailwind, Framer Motion). Contains UI, hooks, components, and Vitest tests.
+- `server/` — Express + Socket.io backend (TypeScript). Contains socket handlers, game registry, controllers, services, repositories, and Jest tests.
+- `README.md` — this file
 
 ---
 
-## 🛠️ Tech Stack
+## Quick start
 
-### Frontend
-- **Framework**: [React 18](https://reactjs.org/) with [Vite](https://vitejs.dev/)
-- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/) & [Lucide Icons](https://lucide.dev/)
-- **State Management**: [Zustand](https://github.com/pmndrs/zustand)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **UI Components**: [Radix UI](https://www.radix-ui.com/)
-- **Testing**: [Vitest](https://vitest.dev/) & [Testing Library](https://testing-library.com/)
-
-### Backend
-- **Runtime**: [Node.js](https://nodejs.org/) with [Express](https://expressjs.com/)
-- **Real-time**: [Socket.io](https://socket.io/)
-- **Database**: [MongoDB](https://www.mongodb.com/) with [Mongoose](https://mongoosejs.com/)
-- **Validation**: [Zod](https://zod.dev/)
-- **Logging**: [Pino](https://github.com/pinojs/pino)
-- **Testing**: [Jest](https://jestjs.io/) & [Supertest](https://github.com/ladjs/supertest)
-
----
-
-## 🎮 Included Games
-
-1.  **Tic-Tac-Toe**: Classic turn-based strategy.
-2.  **Rock Paper Scissors**: Quick real-time decision making.
-3.  **Snake & Ladder**: Multi-player board game with randomized dice rolls.
-
----
-
-## 🏗️ Architecture
-
-The project follows a **Monorepo** structure with clear separation between the client and server.
-
-### Backend Design Patterns
-- **Controller-Service-Repository**: Ensures clean separation of concerns and high testability.
-- **Game Registry Pattern**: Allows for easy extension of game logic without modifying core socket handlers.
-- **In-Memory Room Store**: High-performance room management for active sessions.
-
----
-
-## 🚦 Getting Started
-
-### Prerequisites
-- Node.js (v18+)
-- Yarn or NPM
-- MongoDB instance (local or Atlas)
-
-### Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/Divalsehgal/mutiplayer-rpc.git
-   cd mutiplayer-rpc
-   ```
-
-2. **Setup Server**
-   ```bash
-   cd server
-   yarn install
-   cp .env.example .env # Configure your environment variables
-   yarn dev
-   ```
-
-3. **Setup Client**
-   ```bash
-   cd client
-   yarn install
-   cp .env.example .env # Configure your environment variables
-   yarn dev
-   ```
-
----
-
-## 🧪 Testing
-
-The project maintains high code quality through rigorous testing.
+1. Install dependencies and run both projects locally:
 
 ```bash
-# Run all tests (from root)
-yarn test
+# From repo root
+cd server && yarn install
+cd ../client && yarn install
+```
 
-# Run client tests
-cd client && yarn test
+2. Start development servers (open two terminals):
 
-# Run server tests
-cd server && yarn test
+```bash
+# Terminal A (server)
+cd server
+yarn dev
+
+# Terminal B (client)
+cd client
+yarn dev
+```
+
+3. Build for production:
+
+```bash
+# client
+cd client && yarn build
+
+# server
+cd server && yarn build
 ```
 
 ---
 
-## 📄 License
+## Tests
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Run tests from the repo root:
 
+```bash
+yarn test        # runs client & server tests
+cd client && yarn test    # run Vitest
+cd server && yarn test    # run Jest
+```
+
+---
+
+## Architecture & Code Structure (summary)
+
+- Frontend (`client/src`)
+  - `api/` — small fetch wrapper and typed API helpers
+  - `components/` — reusable UI components and arena game components
+  - `hooks/` — application hooks (`useSocket`, `useRoomLogic`, `useGameLogic`)
+  - `screens/` — top-level routes (Auth, Lobby, Room, Game)
+  - `store/` — Zustand stores for auth, room, game state
+  - `types/` — shared TypeScript types and guards
+
+- Backend (`server/src`)
+  - `socket/` — Socket.io handlers and event routing
+  - `games/` — game engines and `gameRegistry` for plug-and-play games
+  - `repositories/` — in-memory room repository and persistence adapters
+  - `controllers/` & `services/` — HTTP endpoints and business logic
+  - `routes/` — Express route bindings
+  - `utils/` — logger, helpers
+
+Key patterns:
+
+- Game Registry: central map of `gameType -> engine` so new games can be added as independent modules.
+- Room Store: in-memory store for active sessions; persistence is handled separately (MongoDB used for user data and longer-term storage).
+
+---
+
+## Notes & Maintenance
+
+- Tests are run in CI; ensure Vitest and Jest tests pass before merging.
+- The Room store is intentionally in-memory for speed; consider persistent storage for production.
+
+If you want, I can also open a PR with these README updates.

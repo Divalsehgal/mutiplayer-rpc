@@ -4,12 +4,15 @@ import { ServerToClientEvents } from '../types/events';
 
 export function useSocketEvent<K extends keyof ServerToClientEvents>(
   event: K,
-  callback: ServerToClientEvents[K]
+  callback: (...args: unknown[]) => void
 ) {
   useEffect(() => {
-    socket.on(event, callback);
+    // Using a narrow cast with an eslint-disable to avoid noisy socket generic mismatches
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (socket as any).on(event, callback);
     return () => {
-      socket.off(event, callback);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (socket as any).off(event, callback);
     };
   }, [event, callback]);
 }
