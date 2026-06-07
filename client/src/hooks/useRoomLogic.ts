@@ -4,6 +4,7 @@ import { socket, getPlayerUid } from '@/api/socket';
 import { useRoomStore } from '../store/room';
 import { useSocket } from './useSocket';
 import { useSocketEvent } from './useSocketEvent';
+import { RoomState } from '../types';
 import { useAuthStore } from '../store/auth';
 import { JoinRoomResponse } from '../types';
 
@@ -56,7 +57,7 @@ export function useRoomLogic(roomId: string | undefined) {
     });
   }, [isConnected, roomId, playerUid, navigate, setRoom, user?.avatar, user?.user_name]);
 
-  useSocketEvent("room-update", (updatedRoom) => {
+  useSocketEvent("room-update", (updatedRoom: RoomState | null) => {
     if (!updatedRoom) {
       setRoom(null);
       return;
@@ -64,12 +65,13 @@ export function useRoomLogic(roomId: string | undefined) {
     setRoom(updatedRoom);
   });
 
-  useSocketEvent("ROOM_WARNING", ({ secondsLeft }) => {
+  useSocketEvent("ROOM_WARNING", ({ secondsLeft }: { secondsLeft: number }) => {
     setTtlWarning(secondsLeft);
   });
 
-  useSocketEvent("room-error", (err) => {
-    if (err.code === "ROOM_EXPIRED") {
+  useSocketEvent("room-error", (err: unknown) => {
+    const code = (err as { code?: string } | null)?.code;
+    if (code === "ROOM_EXPIRED") {
       setRoom(null);
       navigate('/');
     }

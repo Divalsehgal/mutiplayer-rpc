@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socket, getPlayerUid } from '../api/socket';
 import { useRoomStore } from '../store/room';
+import { RoomState } from '../types';
 import { useAuthStore } from '../store/auth';
 import { useSocketEvent } from './useSocketEvent';
 import { JoinRoomResponse } from '../types';
@@ -38,7 +39,7 @@ export function useGameLogic(roomId: string | undefined) {
     });
   }, [roomId, playerUid, setRoom]);
 
-  useSocketEvent("room-update", (updatedRoom) => {
+  useSocketEvent("room-update", (updatedRoom: RoomState | null) => {
     if (!updatedRoom) {
       setRoom(null);
       return;
@@ -46,12 +47,14 @@ export function useGameLogic(roomId: string | undefined) {
     setRoom(updatedRoom);
   });
 
-  useSocketEvent("ROOM_WARNING", ({ secondsLeft }) => {
+  useSocketEvent("ROOM_WARNING", ({ secondsLeft }: { secondsLeft: number }) => {
     setTtlWarning(secondsLeft);
   });
 
-  useSocketEvent("room-error", (err) => {
-    if (err.code === "ROOM_EXPIRED") {
+  useSocketEvent("room-error", (err: unknown) => {
+    // err can be unknown when coming from socket; narrow safely
+    const code = (err as { code?: string } | null)?.code;
+    if (code === "ROOM_EXPIRED") {
       setRoom(null);
       setTimeout(() => navigate('/'), 3000);
     }
