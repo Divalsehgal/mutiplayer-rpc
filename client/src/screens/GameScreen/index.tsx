@@ -96,7 +96,10 @@ export default function GameScreen() {
 
   const isRoundOver = gameState.status === "waiting_for_ready";
   const amIReady = gameState.readyPlayers?.includes(playerUid);
-  const winner = "winner" in gameState ? (gameState as { winner: string | null }).winner : null;
+  const winner =
+    "winner" in gameState
+      ? (gameState as { winner: string | null }).winner
+      : null;
   const ArenaComponent = ARENA_COMPONENTS[room.gameType];
 
   return (

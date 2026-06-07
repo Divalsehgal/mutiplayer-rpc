@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import LobbyScreen from './screens/LobbyScreen';
 import RoomScreen from './screens/RoomScreen';
 import GameScreen from './screens/GameScreen';
@@ -113,6 +113,9 @@ function App() {
                   <GameScreen />
                 </ProtectedRoute>
               } />
+              <Route path="/games" element={<Navigate replace to="/" />} />
+              <Route path="/settings" element={<Navigate replace to="/" />} />
+              <Route path="*" element={<Navigate replace to="/" />} />
             </Routes>
           </AppLayout>
         </BrowserRouter>

@@ -1,6 +1,7 @@
 import { useAuthStore } from '../store/auth';
 
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3030';
+const rawServerUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:3030';
+const SERVER_URL = rawServerUrl.replace(/\/+$/, '');
 
 interface RequestOptions extends RequestInit {
   retry?: boolean;
@@ -30,7 +31,7 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}): 
     headers.set('Content-Type', 'application/json');
   }
 
-  const url = `${SERVER_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const url = new URL(endpoint, SERVER_URL).toString();
   
   const response = await fetch(url, {
     ...options,

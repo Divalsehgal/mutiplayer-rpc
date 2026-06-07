@@ -50,7 +50,10 @@ Our next objective is to integrate Google Single Sign-On to allow users to authe
 ### Phase 1: Infrastructure
 
 - Set up Google Cloud Console credentials.
-- Add `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `.env`.
+- Add these env vars:
+  - `VITE_GOOGLE_CLIENT_ID` in the client environment for the Google OAuth provider.
+  - `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` or `CLIENT_ID`/`CLIENT_SECRET` in the server environment for token verification.
+- Configure authorized origins and redirect URIs in Google Cloud Console.
 
 ### Phase 2: Implementation Flow
 

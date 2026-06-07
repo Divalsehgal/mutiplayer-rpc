@@ -2,8 +2,8 @@ import { io, Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 import type { ClientToServerEvents, ServerToClientEvents } from "../types/events";
 
-// Deployment Ready: Use environment variable with local fallback
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3030";
+const rawServerUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:3030";
+const SERVER_URL = rawServerUrl.replace(/\/+$/, '');
 
 /**
  * Persistent Player UUID Helper
