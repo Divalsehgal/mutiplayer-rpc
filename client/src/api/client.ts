@@ -31,7 +31,8 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}): 
     headers.set('Content-Type', 'application/json');
   }
 
-  const url = new URL(endpoint, SERVER_URL).toString();
+  const requestEndpoint = endpoint.replace(/^\/+/, "");
+  const url = new URL(requestEndpoint, `${SERVER_URL}/`).toString();
 
   const response = await fetch(url, {
     ...options,

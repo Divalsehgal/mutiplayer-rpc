@@ -7,16 +7,28 @@ import { setAuthCookies } from "./helpers";
 import AuthModel from "../../models/auth";
 import UserModel from "../../models/user";
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? process.env.CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? process.env.CLIENT_SECRET;
+let googleClient: OAuth2Client | null = null;
 
-if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    throw new Error(
-        "Google OAuth env vars missing: set GOOGLE_CLIENT_ID/CLIENT_ID and GOOGLE_CLIENT_SECRET/CLIENT_SECRET"
-    );
-}
+const getGoogleOAuthCredentials = () => {
+    const clientId = process.env.GOOGLE_CLIENT_ID ?? process.env.CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET ?? process.env.CLIENT_SECRET;
 
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
+    if (!clientId || !clientSecret) {
+        throw new Error(
+            "Google OAuth env vars missing: set GOOGLE_CLIENT_ID/CLIENT_ID and GOOGLE_CLIENT_SECRET/CLIENT_SECRET"
+        );
+    }
+    return { clientId, clientSecret };
+};
+
+const getGoogleClient = () => {
+    if (!googleClient) {
+        const { clientId, clientSecret } = getGoogleOAuthCredentials();
+        googleClient = new OAuth2Client(clientId, clientSecret);
+    }
+    return googleClient;
+};
+
 const authService = new AuthService();
 
 export const googleAuthHandler = async (req: Request, res: Response) => {
@@ -27,9 +39,12 @@ export const googleAuthHandler = async (req: Request, res: Response) => {
             return res.status(400).json({ success: false, message: "Google ID Token is required" });
         }
 
-        const ticket = await googleClient.verifyIdToken({
+        const { clientId } = getGoogleOAuthCredentials();
+        const client = getGoogleClient();
+
+        const ticket = await client.verifyIdToken({
             idToken,
-            audience: GOOGLE_CLIENT_ID
+            audience: clientId
         });
 
         const payload = ticket.getPayload();

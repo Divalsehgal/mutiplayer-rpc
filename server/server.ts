@@ -1,5 +1,5 @@
 import express from "express";
-import http from "http";
+import http from "node:http";
 import cors from "cors";
 import { Server } from "socket.io";
 import cookieParser from "cookie-parser"
@@ -30,13 +30,24 @@ import userRouter from "./src/routes/user";
 
 const app = express();
 
-app.use(
-    cors({
-        origin: CORS_ORIGIN,
-        methods: ["GET", "POST"],
-        credentials: true,
-    })
-);
+const normalizeRequestOrigin = (value: string | undefined) => value?.replace(/\/+$|\/+?(?=\?|#|$)/g, "") ?? undefined;
+
+const corsOptions = {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        const normalizedOrigin = normalizeRequestOrigin(origin);
+
+        if (!origin || normalizedOrigin === CORS_ORIGIN) {
+            callback(null, true);
+            return;
+        }
+
+        callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
+    methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(cookieParser())

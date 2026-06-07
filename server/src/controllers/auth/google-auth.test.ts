@@ -1,3 +1,6 @@
+process.env.CLIENT_ID = 'mock-client-id';
+process.env.CLIENT_SECRET = 'mock-client-secret';
+
 import { googleAuthHandler } from './index';
 import AuthModel from '../../models/auth';
 import UserModel from '../../models/user';
