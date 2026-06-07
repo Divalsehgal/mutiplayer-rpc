@@ -103,11 +103,15 @@ setInterval(() => {
 
 async function startServer() {
     try {
-        if (!process.env.MONGO_DB_URI) {
-            throw new Error("MongoDN String is Missing")
+        if (process.env.MONGO_DB_URI) {
+            const dbName = process.env.DB_NAME ?? "";
+            await mongoose.connect(process.env.MONGO_DB_URI + dbName);
+            logger.info("📡 Connected to MongoDB Cluster");
+        } else {
+            logger.warn(
+                "MONGO_DB_URI not set; starting server without a database connection. Set MONGO_DB_URI to enable DB."
+            );
         }
-        await mongoose.connect(process.env.MONGO_DB_URI + process.env.DB_NAME);
-        logger.info("📡 Connected to MongoDB Cluster");
 
         server.listen(PORT, () => {
             logger.info(`🚀 Server running at http://localhost:${PORT}`);
