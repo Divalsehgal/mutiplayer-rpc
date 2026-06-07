@@ -61,8 +61,8 @@ Our next objective is to integrate Google Single Sign-On to allow users to authe
 2. **Callback**: Handle Google's redirect with an authorization code.
 3. **Verify**: Exchange code for `id_token` and verify user identity via `google-auth-library`.
 4. **Link/Sync**:
-    - match Google's email with existing DB users.
-    - If new, create a user record.
+   - match Google's email with existing DB users.
+   - If new, create a user record.
 5. **Issue Tokens**: Generate our custom Access/Refresh tokens to start the session.
 
 ### Phase 3: Testing & UI

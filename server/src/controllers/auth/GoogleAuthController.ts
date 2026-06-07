@@ -33,7 +33,7 @@ export const googleAuthHandler = async (req: Request, res: Response) => {
         });
 
         const payload = ticket.getPayload();
-        
+
         if (!payload || !payload.email) {
             return res.status(401).json({ success: false, message: "Invalid Google token payload" });
         }
@@ -88,10 +88,10 @@ export const googleAuthHandler = async (req: Request, res: Response) => {
     } catch (err) {
         const error = err as Error;
         console.error("DEBUG GOOGLE AUTH ERROR:", error.message);
-        res.status(401).json({ 
-            success: false, 
+        res.status(401).json({
+            success: false,
             message: "Google authentication failed",
-            debug: error.message 
+            debug: error.message
         });
     }
 };

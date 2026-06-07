@@ -22,7 +22,7 @@ function onTokenRefreshed(token: string) {
 
 export async function apiFetch(endpoint: string, options: RequestOptions = {}): Promise<{ ok: boolean; status: number; data: unknown }> {
   const { accessToken, setAuth, logout } = useAuthStore.getState();
-  
+
   const headers = new Headers(options.headers || {});
   if (accessToken) {
     headers.set('Authorization', `Bearer ${accessToken}`);
@@ -32,7 +32,7 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}): 
   }
 
   const url = new URL(endpoint, SERVER_URL).toString();
-  
+
   const response = await fetch(url, {
     ...options,
     headers,
@@ -79,6 +79,6 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}): 
   }
 
   const data = await response.json().catch(() => null);
-  
+
   return { ok: response.ok, status: response.status, data };
 }

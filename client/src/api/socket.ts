@@ -37,14 +37,14 @@ export const socket: Socket<ServerToClientEvents, ClientToServerEvents> = io(SER
 
 export const connectSocket = (token?: string, playerUid?: string) => {
     let changed = false;
-    
+
     const auth = socket.auth as { token?: string; playerUid?: string };
-    
+
     if (token && auth.token !== token) {
         auth.token = token;
         changed = true;
     }
-    
+
     if (playerUid && auth.playerUid !== playerUid) {
         auth.playerUid = playerUid;
         changed = true;
