@@ -9,8 +9,8 @@ describe('GameHeader', () => {
             gameState: { roundCount: 1 } 
         },
         playerUid: 'u1',
-        player: { name: 'Alpha', score: 5 },
-        opponent: { name: 'Bravo', score: 3 },
+        player: { name: 'Alpha', score: 5, role: 'player' },
+        opponent: { name: 'Bravo', score: 3, role: 'player' },
         isSpectator: false
     };
 

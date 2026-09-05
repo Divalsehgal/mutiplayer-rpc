@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import AuthModel from "../models/auth";
+import { verifyAccessToken } from "../utils/authTokens";
 
 export interface AuthRequest extends Request {
     user?: {
@@ -17,8 +17,7 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     }
 
     try {
-        const secret = process.env.JWT_SECRET || "access_secret_key";
-        const decoded = jwt.verify(token, secret) as { _id: string; user_name: string };
+        const decoded = verifyAccessToken<{ _id: string; user_name: string }>(token);
         
         // Optional: Verify that the auth record still exists
         const auth = await AuthModel.findOne({ userId: decoded._id });
@@ -32,4 +31,3 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
         return res.status(401).json({ success: false, message: "Unauthorized: Invalid or expired token" });
     }
 };
-

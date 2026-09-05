@@ -106,6 +106,33 @@ describe('RoomController', () => {
         expect(callback).toHaveBeenCalledWith({ ok: false, error: 'Error fetching rooms' });
     });
 
+    it('should notify the superseded socket when a player rejoins from another tab/device', () => {
+        const mockRoom = { id: 'room1', players: [{ playerUid: 'u1', socketId: 'socket789' }] };
+        mockRoomService.joinRoom.mockReturnValue({ room: mockRoom, role: 'player', supersededSocketId: 'oldSocket456' });
+        mockRoomRepository.getRoom.mockReturnValue(mockRoom);
+        mockGameService.getPublicRoomState.mockReturnValue({ id: 'room1', players: [] });
+        const callback = jest.fn();
+
+        controller.joinRoom(mockSocket, { roomId: 'room1', name: 'Player' }, callback);
+
+        expect(mockIo.to).toHaveBeenCalledWith('oldSocket456');
+        expect(mockIo.to('oldSocket456').emit).toHaveBeenCalledWith('session-taken-over', { roomId: 'room1' });
+    });
+
+    it('should not emit a takeover notice on a fresh join', () => {
+        const mockRoom = { id: 'room1', players: [{ playerUid: 'u1', socketId: 'socket123' }] };
+        mockRoomService.joinRoom.mockReturnValue({ room: mockRoom, role: 'player' });
+        mockRoomRepository.getRoom.mockReturnValue(mockRoom);
+        mockGameService.getPublicRoomState.mockReturnValue({ id: 'room1', players: [] });
+        const callback = jest.fn();
+
+        controller.joinRoom(mockSocket, { roomId: 'room1', name: 'Player' }, callback);
+
+        expect(mockIo.to).not.toHaveBeenCalledWith('session-taken-over');
+        const emitCalls = (mockIo.to().emit as jest.Mock).mock.calls;
+        expect(emitCalls.some(([event]: [string]) => event === 'session-taken-over')).toBe(false);
+    });
+
     it('should handle errors in joinRoom', () => {
         mockRoomService.joinRoom.mockImplementation(() => { throw new Error('Join error'); });
         const callback = jest.fn();

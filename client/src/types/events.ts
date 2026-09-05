@@ -8,6 +8,7 @@ export interface ServerToClientEvents {
   "player-state-update": (data: { roomId: string; playerUid: string; status: string }) => void;
   "ROOM_WARNING": (data: { secondsLeft: number }) => void;
   "room-error": (data: { code: string; message: string }) => void;
+  "session-taken-over": (data: { roomId: string }) => void;
 }
 
 // Events sent from CLIENT -> SERVER

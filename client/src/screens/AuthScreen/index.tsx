@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { motion } from "framer-motion";
 import { useAuthStore } from "../../store/auth";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { apiFetch } from "../../api/client";
 import {
   Card,
@@ -25,9 +25,13 @@ const AuthScreen = () => {
   const { googleLogin, setAuth, error, setError, isAuthenticated, isLoading } =
     useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo =
+    (location.state as { from?: { pathname?: string } } | null)?.from
+      ?.pathname || "/";
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,9 +52,9 @@ const AuthScreen = () => {
 
       if (ok && data?.success) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { user, accessToken } = data.data as any;
+        const { user, accessToken = null } = data.data as any;
         setAuth(user, accessToken);
-        navigate("/");
+        navigate(redirectTo);
       } else {
         setError((data && data.message) || "Authentication failed");
       }
@@ -116,7 +120,7 @@ const AuthScreen = () => {
               </Button>
             </div>
             <CardTitle className="text-xl font-black italic tracking-tight text-center">
-              {isLogin ? "WELCOME BACK, CHAMPION" : "RECRUITING NEW TALENT"}
+              {isLogin ? "WELCOME BACK, CHAMPION" : "WELCOME, NEW RECRUIT!"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">

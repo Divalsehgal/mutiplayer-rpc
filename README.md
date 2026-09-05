@@ -1,93 +1,115 @@
 # 🎮 Multiplayer Game Arena
 
-This repository is a monorepo that contains the frontend (`client/`) and backend (`server/`) for a real-time multiplayer platform built with Socket.io and TypeScript.
+A real-time multiplayer game platform: React/Vite client + Express/Socket.IO
+server, TypeScript throughout. Three turn-based games ship today (Rock
+Paper Scissors, Tic-Tac-Toe, Snake & Ladder) behind one shared room/lobby/
+reconnect system, with account auth (email+password or Google) gating
+access.
 
-This README provides a short overview, architecture summary, and the common commands to develop, build, and test the project.
+Deliberately simple by design: one authoritative in-memory room store on a
+single server process, no message queue, no microservices, no Redis. See
+`server/README.md` for why, and what that trades away.
 
 ---
 
 ## Repository layout
 
-- `client/` — React + Vite frontend (TypeScript, Tailwind, Framer Motion). Contains UI, hooks, components, and Vitest tests.
-- `server/` — Express + Socket.io backend (TypeScript). Contains socket handlers, game registry, controllers, services, repositories, and Jest tests.
-- `README.md` — this file
+- `client/` — React + Vite frontend. See [`client/README.md`](client/README.md).
+- `server/` — Express + Socket.IO backend. See [`server/README.md`](server/README.md).
 
 ---
 
 ## Quick start
 
-1. Install dependencies and run both projects locally:
-
 ```bash
-# From repo root
+# install
 cd server && yarn install
 cd ../client && yarn install
+
+# run (two terminals)
+cd server && yarn dev     # http://localhost:3030
+cd client && yarn dev     # http://localhost:5173
 ```
 
-2. Start development servers (open two terminals):
+Each side needs its own `.env` — see the env var tables in
+`server/README.md` and `client/README.md`. The server starts fine without
+`MONGO_DB_URI` set (rooms/games work; auth routes that touch the DB won't).
 
 ```bash
-# Terminal A (server)
-cd server
-yarn dev
-
-# Terminal B (client)
-cd client
-yarn dev
-```
-
-3. Build for production:
-
-```bash
-# client
+# build
 cd client && yarn build
-
-# server
 cd server && yarn build
+
+# test
+cd client && yarn test    # vitest
+cd server && yarn test    # jest
 ```
 
 ---
 
-## Tests
+## How a match happens, end to end
 
-Run tests from the repo root:
+1. **Auth** — sign up/in with email+password or Google, or land on a
+   protected route unauthenticated and get redirected to `/login` (the
+   original destination is preserved and restored after login — this is
+   what makes a shared room link work even for a logged-out visitor). Tokens
+   live in httpOnly cookies; the client never touches them directly.
+2. **Socket handshake** — once authenticated, the client opens one
+   Socket.IO connection carrying the same cookie/token; the server verifies
+   it and attaches `playerUid` to the socket for the connection's lifetime.
+3. **Create or join a room** — `create-room` picks a `gameType` and spins up
+   initial state from that game's engine; `join-room` (used for a fresh
+   join, a page refresh, or opening a shared `/room/:id` link directly) adds
+   the player, or — if they're already in the room under a different
+   connection — rebinds their session to the new socket. A room fills its
+   `maxPlayers` slots as `player`s; anyone joining after that watches as a
+   `spectator` and gets promoted automatically if a slot opens up.
+4. **Lobby → match** — once enough players are in, any player can ready-up;
+   the room's status flips to `playing` and every connected client
+   auto-navigates from the room screen to the game screen (driven by
+   `room.status`, not a manual signal).
+5. **Moves** — the client only ever sends an intent (`game-move`,
+   `game-ready`); the relevant game engine validates and computes the next
+   state server-side, and the server pushes a personalized `room-update` to
+   every connected participant (spectators get a redacted view via
+   `projectPublicState`). A move from anyone who isn't a seated player is
+   rejected before it reaches the engine.
+6. **Disconnects & reconnects** — a dropped socket marks the player
+   `offline` but keeps their seat for a grace period; refreshing or
+   reopening the room link rejoins and restores it. If the same player joins
+   from a second tab/device, the *first* tab is notified
+   (`session-taken-over`) and shows a dedicated "active elsewhere" screen
+   instead of quietly going stale.
+7. **Idle/expiry** — inactive rooms warn (`ROOM_WARNING`) and eventually
+   expire; any room activity (a join, a move, an explicit "extend") resets
+   the clock.
 
-```bash
-yarn test        # runs client & server tests
-cd client && yarn test    # run Vitest
-cd server && yarn test    # run Jest
-```
+## Design decisions worth knowing about
 
----
+- **Server-authoritative, always.** No game rule or turn-validity check
+  exists on the client — the client renders whatever `gameState` it's
+  handed and sends intents. This is enforced by construction: every game
+  engine implements the same `getInitialState/handleReady/handleMove/
+  projectPublicState` interface, and `GameService` is the one place all of
+  them are invoked through.
+- **In-memory room store, single process.** Fast and simple; the tradeoff is
+  that a server restart drops all active rooms and a horizontal scale-out
+  would need a shared store. Account data (users, sessions) is the only
+  thing in MongoDB — rooms/games are intentionally not persisted.
+- **Cookie-based auth, not client-held tokens.** Access/refresh tokens are
+  httpOnly cookies end to end (HTTP routes and the Socket.IO handshake both
+  read the same cookie), so the client bundle never holds a bearer token in
+  memory or storage.
+- **One connection lifecycle hook.** Room screen and game screen share a
+  single `useRoomConnection` hook for register/join/sync/leave/extend; each
+  screen only adds what's actually different (which route to auto-navigate
+  to, and — for the game screen — the per-move emits). See
+  `client/README.md`.
 
-## Architecture & Code Structure (summary)
+## Notes & maintenance
 
-- Frontend (`client/src`)
-  - `api/` — small fetch wrapper and typed API helpers
-  - `components/` — reusable UI components and arena game components
-  - `hooks/` — application hooks (`useSocket`, `useRoomLogic`, `useGameLogic`)
-  - `screens/` — top-level routes (Auth, Lobby, Room, Game)
-  - `store/` — Zustand stores for auth, room, game state
-  - `types/` — shared TypeScript types and guards
-
-- Backend (`server/src`)
-  - `socket/` — Socket.io handlers and event routing
-  - `games/` — game engines and `gameRegistry` for plug-and-play games
-  - `repositories/` — in-memory room repository and persistence adapters
-  - `controllers/` & `services/` — HTTP endpoints and business logic
-  - `routes/` — Express route bindings
-  - `utils/` — logger, helpers
-
-Key patterns:
-
-- Game Registry: central map of `gameType -> engine` so new games can be added as independent modules.
-- Room Store: in-memory store for active sessions; persistence is handled separately (MongoDB used for user data and longer-term storage).
-
----
-
-## Notes & Maintenance
-
-- Tests are run in CI; ensure Vitest and Jest tests pass before merging.
-- The Room store is intentionally in-memory for speed; consider persistent storage for production.
-
-If you want, I can also open a PR with these README updates.
+- Test file naming matters on the client: Vitest only picks up
+  `*.test.ts(x)`, not a bare `test.ts(x)` — see the note in
+  `client/README.md` before adding a new test file.
+- The in-memory room store is intentionally ephemeral; don't rely on active
+  rooms surviving a server restart or deploy.

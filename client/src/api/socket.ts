@@ -43,6 +43,9 @@ export const connectSocket = (token?: string, playerUid?: string) => {
     if (token && auth.token !== token) {
         auth.token = token;
         changed = true;
+    } else if (!token && auth.token) {
+        delete auth.token;
+        changed = true;
     }
 
     if (playerUid && auth.playerUid !== playerUid) {

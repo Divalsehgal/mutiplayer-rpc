@@ -1,75 +1,19 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { socket, getPlayerUid } from '../api/socket';
-import { useRoomStore } from '../store/room';
-import { RoomState } from '../types';
-import { useAuthStore } from '../store/auth';
-import { useSocketEvent } from './useSocketEvent';
-import { JoinRoomResponse } from '../types';
+import { socket } from '../api/socket';
+import { useRoomConnection } from './useRoomConnection';
 
 export function useGameLogic(roomId: string | undefined) {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
-  const { room, setRoom, ttlWarning, setTtlWarning } = useRoomStore();
-  const playerUid = user?._id || user?.id || getPlayerUid();
+  const connection = useRoomConnection(roomId);
+  const { room } = connection;
 
-  // Countdown for inactivity warning
+  // Auto-navigate back to lobby if match is interrupted
   useEffect(() => {
-    if (ttlWarning === null || ttlWarning <= 0) return;
-    const interval = setInterval(() => {
-      setTtlWarning(ttlWarning - 1);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [ttlWarning, setTtlWarning]);
-
-  // Initial Join Logic (for refreshes)
-  useEffect(() => {
-    if (!roomId) return;
-
-    // Register and then Join
-    socket.emit("register", { playerUid, name: sessionStorage.getItem('playerName') || "Player" }, () => {
-      socket.emit("join-room", { roomId, name: sessionStorage.getItem('playerName') || "Player" }, (res: JoinRoomResponse) => {
-        if (res?.ok && res.room) {
-          setRoom(res.room);
-        } else {
-          console.error("Match not found or join failed:", res);
-          setRoom(null); // Explicitly mark as not found
-        }
-      });
-    });
-  }, [roomId, playerUid, setRoom]);
-
-  useSocketEvent("room-update", (updatedRoom: RoomState | null) => {
-    if (!updatedRoom) {
-      setRoom(null);
-      return;
+    if (room?.status === "waiting-for-players" && roomId) {
+      navigate(`/room/${roomId}`);
     }
-    setRoom(updatedRoom);
-  });
-
-  useSocketEvent("ROOM_WARNING", ({ secondsLeft }: { secondsLeft: number }) => {
-    setTtlWarning(secondsLeft);
-  });
-
-  useSocketEvent("room-error", (err: unknown) => {
-    // err can be unknown when coming from socket; narrow safely
-    const code = (err as { code?: string } | null)?.code;
-    if (code === "ROOM_EXPIRED") {
-      setRoom(null);
-      setTimeout(() => navigate('/'), 3000);
-    }
-  });
-
-  const handleExtendSession = () => {
-    if (!roomId) return;
-    socket.emit('extend-room', { roomId }, () => setTtlWarning(null));
-  };
-
-  const handleLeave = () => {
-    if (!roomId) return;
-    socket.emit('leave-room', { roomId });
-    navigate('/');
-  };
+  }, [room?.status, roomId, navigate]);
 
   const handleRPSMove = (move: string) => {
     if (!roomId) return;
@@ -92,11 +36,7 @@ export function useGameLogic(roomId: string | undefined) {
   };
 
   return {
-    room,
-    playerUid,
-    ttlWarning,
-    handleExtendSession,
-    handleLeave,
+    ...connection,
     handleRPSMove,
     handleSnakeLadderMove,
     handleTicTacToeMove,

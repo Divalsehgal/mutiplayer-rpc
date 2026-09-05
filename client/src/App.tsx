@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { useSocket } from "./hooks/useSocket";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useAuthStore } from "./store/auth";
+import { Toaster } from "./components/ui/toaster";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -154,6 +155,7 @@ function App() {
             </Routes>
           </AppLayout>
         </BrowserRouter>
+        <Toaster />
       </div>
     </GoogleOAuthProvider>
   );

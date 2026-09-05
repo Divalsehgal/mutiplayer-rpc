@@ -19,22 +19,6 @@ export class RoomMaintenanceRepository extends RoomActionRepository {
         return { room, player };
     }
 
-    reconnectPlayer(data: { playerUid: string, socketId: string }) {
-        const room = this.getRoomForPlayer(data.playerUid);
-        if (!room) return null;
-
-        const player = this.getPlayerInRoom(room, data.playerUid);
-        if (!player) return null;
-
-        player.socketId = data.socketId;
-        player.status = "online";
-        player.lastDisconnectedAt = null;
-        room.updatedAt = this.now();
-        this.socketToPlayer.set(data.socketId, data.playerUid);
-
-        return { room, player };
-    }
-
     incrementScore(roomId: string, playerUid: string) {
         const room = this.getRoom(roomId);
         if (!room) return;

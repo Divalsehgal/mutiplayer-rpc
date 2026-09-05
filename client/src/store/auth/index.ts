@@ -17,7 +17,7 @@ interface AuthState {
   error: string | null;
   
   // Actions
-  setAuth: (user: User, accessToken: string) => void;
+  setAuth: (user: User, accessToken?: string | null) => void;
   logout: () => void;
   setError: (error: string | null) => void;
   googleLogin: (idToken: string) => Promise<void>;
@@ -29,7 +29,7 @@ interface AuthResponse {
   message?: string;
   data: {
     user: User;
-    accessToken: string;
+    accessToken?: string;
   };
 }
 
@@ -46,7 +46,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   isLoading: false,
   error: null,
 
-  setAuth: (user, accessToken) => set({ 
+  setAuth: (user, accessToken = null) => set({ 
     user, 
     accessToken, 
     isAuthenticated: true, 
@@ -74,13 +74,22 @@ export const useAuthStore = create<AuthState>((set) => ({
       }) as { ok: boolean; status: number; data: AuthResponse };
       
       if (ok && data.success) {
-        const { user, accessToken } = data.data;
+        const { user, accessToken = null } = data.data;
         set({ user, accessToken, isAuthenticated: true, isLoading: false });
       } else {
-        set({ error: data?.message || 'Google login failed', isLoading: false });
+        set({
+          user: null,
+          accessToken: null,
+          isAuthenticated: false,
+          error: data?.message || 'Google login failed',
+          isLoading: false
+        });
       }
     } catch (err: unknown) {
       set({ 
+        user: null,
+        accessToken: null,
+        isAuthenticated: false,
         error: err instanceof Error ? err.message : 'Google login failed', 
         isLoading: false 
       });
@@ -94,14 +103,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (ok && data.success) {
         set({ 
           user: data.data, 
+          accessToken: null,
           isAuthenticated: true, 
           isLoading: false 
         });
       } else {
-        set({ isAuthenticated: false, isLoading: false });
+        set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
       }
     } catch (err) {
-      set({ isAuthenticated: false, isLoading: false });
+      set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
     }
   }
 }));

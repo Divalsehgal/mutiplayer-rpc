@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
 import { SignupRequest, SigninRequest } from "../../dtos/auth.dto";
 import UserModel from "../../models/user";
 import AuthModel from "../../models/auth";
 import SessionModel from "../../models/session";
+import { verifyRefreshToken } from "../../utils/authTokens";
 
 export class AuthService {
     async signup(userData: SignupRequest, metadata?: { userAgent?: string, ip?: string }) {
@@ -85,8 +85,7 @@ export class AuthService {
 
     async refreshTokens(refreshToken: string) {
         try {
-            const secret = process.env.REFRESH_TOKEN_SECRET || "refresh_secret_key";
-            const decoded = jwt.verify(refreshToken, secret) as { _id: string; user_name: string };
+            const decoded = verifyRefreshToken<{ _id: string; user_name?: string }>(refreshToken);
             
             // 1. Verify session exists in DB
             const activeSession = await SessionModel.findOne({ refreshToken, userId: decoded._id });
@@ -118,6 +117,5 @@ export class AuthService {
         await SessionModel.deleteOne({ refreshToken });
     }
 }
-
 
 

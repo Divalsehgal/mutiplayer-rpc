@@ -62,6 +62,35 @@ describe('RoomActionRepository', () => {
         const join = repo.joinRoom({ roomId: room.id, playerUid: 'h1', socketId: 's2', name: 'P1' });
         expect(join.room.players).toHaveLength(1);
         expect(join.room.players[0].socketId).toBe('s2');
+        expect(join.supersededSocketId).toBe('s1');
+    });
+
+    it('should not report a superseded socket for a brand new player', () => {
+        const room = repo.createRoom({
+            hostPlayerUid: 'h1',
+            socketId: 's1',
+            name: 'P1',
+            gameType: 'RPS',
+            hostName: 'P1',
+            initialGameState: {} as RPSState
+        });
+
+        const join = repo.joinRoom({ roomId: room.id, playerUid: 'p2', socketId: 's2', name: 'P2' });
+        expect(join.supersededSocketId).toBeUndefined();
+    });
+
+    it('should not report a superseded socket when the same connection rejoins', () => {
+        const room = repo.createRoom({
+            hostPlayerUid: 'h1',
+            socketId: 's1',
+            name: 'P1',
+            gameType: 'RPS',
+            hostName: 'P1',
+            initialGameState: {} as RPSState
+        });
+
+        const join = repo.joinRoom({ roomId: room.id, playerUid: 'h1', socketId: 's1', name: 'P1' });
+        expect(join.supersededSocketId).toBeNull();
     });
 
     it('should promote spectator to player when a player leaves', () => {

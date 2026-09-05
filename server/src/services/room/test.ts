@@ -38,15 +38,6 @@ describe('RoomService', () => {
         expect(result.role).toBe('player');
     });
 
-    it('should handle player ready', () => {
-        const mockRoom = { id: 'r1', gameType: 'RPS', gameState: {} };
-        mockRepo.getRoom.mockReturnValue(mockRoom);
-        
-        const result = service.handleReady('r1', 'u1');
-        expect(result?.status).toBe('playing');
-        expect(mockRepo.updateGameState).toHaveBeenCalled();
-    });
-
     it('should handle leaving a room', () => {
         mockRepo.leaveRoom.mockReturnValue({ roomId: 'r1', roomDeleted: true });
         const result = service.leaveRoom({ roomId: 'r1', playerUid: 'u1' });
@@ -101,16 +92,6 @@ describe('RoomService', () => {
             expect(() => {
                 service.createRoom({ playerUid: 'u1', socketId: 's1', name: 'N', gameType: 'RPS' });
             }).toThrow('Could not initialize game state');
-        });
-
-        it('should return null if room not found in handleReady', () => {
-            mockRepo.getRoom.mockReturnValue(null);
-            expect(service.handleReady('r1', 'u1')).toBeNull();
-        });
-
-        it('should return null if handler not found in handleReady', () => {
-            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'UNKNOWN' });
-            expect(service.handleReady('r1', 'u1')).toBeNull();
         });
 
         it('should return early if room not found in resetRoomState', () => {

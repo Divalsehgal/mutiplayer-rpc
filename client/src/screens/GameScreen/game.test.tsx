@@ -15,6 +15,12 @@ describe('GameScreen', () => {
         expect(document.querySelector('.animate-spin')).toBeDefined();
     });
 
+    it('should render the superseded state when this tab has been taken over', () => {
+        vi.mocked(useGameLogic).mockReturnValue({ room: undefined, superseded: true });
+        render(<BrowserRouter><GameScreen /></BrowserRouter>);
+        expect(screen.getByText(/Active Elsewhere/i)).toBeDefined();
+    });
+
     it('should render abandoned state when room is null', () => {
         vi.mocked(useGameLogic).mockReturnValue({ room: null });
         render(<BrowserRouter><GameScreen /></BrowserRouter>);

@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/button';
 import { Badge } from '../../components/ui/badge';
 import { useRoomLogic } from '../../hooks/useRoomLogic';
 import { InactivityWarning } from '../../components/InactivityWarning';
+import { SessionSupersededScreen } from '../../components/SessionSupersededScreen';
 
 const MIN_PLAYERS_TO_START = 2;
 
@@ -14,11 +15,14 @@ export default function RoomScreen() {
     room,
     playerUid,
     ttlWarning,
+    superseded,
     handleStartGame,
     handleExtendSession,
     handleLeave
   } = useRoomLogic(roomId);
   const navigate = useNavigate();
+
+  if (superseded) return <SessionSupersededScreen />;
 
   if (room === null) return (
     <div className="flex h-screen flex-col items-center justify-center p-6 text-center bg-black overflow-hidden relative">

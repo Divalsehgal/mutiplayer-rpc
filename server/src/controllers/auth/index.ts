@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express"
 import { AuthService } from "../../services/auth"
 import { SignupRequest, SigninRequest } from "../../dtos/auth.dto";
-import { setAuthCookies } from "./helpers";
+import { clearAuthCookies, setAuthCookies } from "./helpers";
 
 export * from "./GoogleAuthController";
 
@@ -11,13 +11,13 @@ export const signinHandler = async (req: Request, res: Response, _next: NextFunc
     try {
         const credentials: SigninRequest = req.body;
         const metadata = { userAgent: req.headers["user-agent"], ip: req.ip };
-        const { tokens } = await authService.signin(credentials, metadata);
+        const { user, tokens } = await authService.signin(credentials, metadata);
 
         setAuthCookies(res, tokens);
 
         res.status(200).json({ 
             success: true,
-            data: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }
+            data: { user: { id: user.id || (user as { _id?: string })._id, user_name: user.user_name, email: user.email, avatar: user.avatar } }
         });
     } catch (err) {
         const error = err as Error;
@@ -38,9 +38,7 @@ export const signupHandler = async (req: Request, res: Response) => {
             success: true, 
             message: "User registered successfully",
             data: { 
-                user: { id: user.id || (user as { _id?: string })._id, user_name: user.user_name, email: user.email }, 
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken
+                user: { id: user.id || (user as { _id?: string })._id, user_name: user.user_name, email: user.email, avatar: user.avatar },
             }
         });
     } catch (err) {
@@ -58,8 +56,7 @@ export const refreshTokenHandler = async (req: Request, res: Response) => {
         const tokens = await authService.refreshTokens(refreshToken);
         setAuthCookies(res, tokens);
         res.status(200).json({ 
-            success: true, 
-            data: { accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }
+            success: true
         });
     } catch (err) {
         const error = err as Error;
@@ -72,7 +69,6 @@ export const logoutHandler = async (req: Request, res: Response) => {
     if (refreshToken) {
         await authService.logout(refreshToken);
     }
-    res.clearCookie('access_token');
-    res.clearCookie('refresh_token');
+    clearAuthCookies(res);
     res.status(200).json({ success: true, message: "Logged out successfully" });
 };

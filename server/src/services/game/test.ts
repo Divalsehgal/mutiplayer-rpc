@@ -25,7 +25,7 @@ describe('GameService', () => {
     });
 
     it('should handle game move and update state', () => {
-        const mockRoom = { id: 'r1', gameType: 'RPS', gameState: {} };
+        const mockRoom = { id: 'r1', gameType: 'RPS', gameState: {}, players: [{ playerUid: 'u1', role: 'player' }] };
         mockRepo.getRoom.mockReturnValue(mockRoom);
         mockRegistry.RPS.handleMove.mockReturnValue({ 
             newGameState: { moved: true }, 
@@ -39,7 +39,7 @@ describe('GameService', () => {
     });
 
     it('should handle game move error', () => {
-        const mockRoom = { id: 'r1', gameType: 'RPS', gameState: {} };
+        const mockRoom = { id: 'r1', gameType: 'RPS', gameState: {}, players: [{ playerUid: 'u1', role: 'player' }] };
         mockRepo.getRoom.mockReturnValue(mockRoom);
         mockRegistry.RPS.handleMove.mockReturnValue({ error: 'Invalid move' });
         
@@ -59,7 +59,7 @@ describe('GameService', () => {
     });
 
     it('should handle game ready', () => {
-        const mockRoom = { id: 'r1', gameType: 'RPS', gameState: {} };
+        const mockRoom = { id: 'r1', gameType: 'RPS', gameState: {}, players: [{ playerUid: 'u1', role: 'player' }] };
         mockRepo.getRoom.mockReturnValue(mockRoom);
         mockRegistry.RPS.handleReady.mockReturnValue({ newGameState: { status: 'playing' } });
         
@@ -75,14 +75,20 @@ describe('GameService', () => {
         });
 
         it('should return null if handler not found in handleReady', () => {
-            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'UNKNOWN' });
+            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'UNKNOWN', players: [{ playerUid: 'u1', role: 'player' }] });
             expect(service.handleReady('r1', 'u1')).toBeNull();
         });
 
         it('should return null if newGameState is null in handleReady', () => {
-            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'RPS' });
+            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'RPS', players: [{ playerUid: 'u1', role: 'player' }] });
             mockRegistry.RPS.handleReady.mockReturnValue({ newGameState: null });
             expect(service.handleReady('r1', 'u1')).toBeNull();
+        });
+
+        it('should return null if caller is not a seated player in handleReady', () => {
+            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'RPS', players: [{ playerUid: 'spectator1', role: 'spectator' }] });
+            expect(service.handleReady('r1', 'spectator1')).toBeNull();
+            expect(mockRegistry.RPS.handleReady).not.toHaveBeenCalled();
         });
 
         it('should return null if room not found in handleMove', () => {
@@ -91,14 +97,29 @@ describe('GameService', () => {
         });
 
         it('should return null if handler not found in handleMove', () => {
-            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'UNKNOWN' });
+            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'UNKNOWN', players: [{ playerUid: 'u1', role: 'player' }] });
             expect(service.handleMove('r1', 'u1', {})).toBeNull();
         });
 
         it('should return null if newGameState is null in handleMove', () => {
-            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'RPS' });
+            mockRepo.getRoom.mockReturnValue({ id: 'r1', gameType: 'RPS', players: [{ playerUid: 'u1', role: 'player' }] });
             mockRegistry.RPS.handleMove.mockReturnValue({ newGameState: null });
             expect(service.handleMove('r1', 'u1', {})).toBeNull();
+        });
+
+        it('should return null and never call the handler if caller is a spectator in handleMove', () => {
+            mockRepo.getRoom.mockReturnValue({
+                id: 'r1',
+                gameType: 'RPS',
+                players: [
+                    { playerUid: 'p1', role: 'player' },
+                    { playerUid: 'spectator1', role: 'spectator' }
+                ]
+            });
+            expect(service.handleMove('r1', 'spectator1', { choice: 'Rock' })).toBeNull();
+            expect(mockRegistry.RPS.handleMove).not.toHaveBeenCalled();
+            expect(mockRepo.updateGameState).not.toHaveBeenCalled();
+            expect(mockRepo.incrementScore).not.toHaveBeenCalled();
         });
 
         it('should return null if room not found in getPublicRoomState', () => {

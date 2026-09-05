@@ -28,14 +28,27 @@ describe('AuthController', () => {
     });
 
     it('should signin and set cookies', async () => {
+        const mockUser = { _id: 'u1', user_name: 'testuser', email: 'test@example.com' };
         const mockTokens = { accessToken: 'at', refreshToken: 'rt' };
-        (AuthService.prototype.signin as jest.Mock).mockResolvedValue({ tokens: mockTokens });
+        (AuthService.prototype.signin as jest.Mock).mockResolvedValue({ user: mockUser, tokens: mockTokens });
         
         await signinHandler(mockReq, mockRes, mockNext);
         
         expect(mockRes.cookie).toHaveBeenCalledWith('access_token', 'at', expect.any(Object));
         expect(mockRes.status).toHaveBeenCalledWith(200);
-        expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+        expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
+            success: true,
+            data: expect.objectContaining({
+                user: expect.objectContaining({
+                    id: 'u1',
+                    user_name: 'testuser',
+                    email: 'test@example.com'
+                })
+            })
+        }));
+        expect(mockRes.json).not.toHaveBeenCalledWith(expect.objectContaining({
+            data: expect.objectContaining({ accessToken: expect.any(String) })
+        }));
     });
 
     it('should handle signin error', async () => {
@@ -56,6 +69,7 @@ describe('AuthController', () => {
         
         expect(mockRes.cookie).toHaveBeenCalledWith('access_token', 'new_at', expect.any(Object));
         expect(mockRes.status).toHaveBeenCalledWith(200);
+        expect(mockRes.json).toHaveBeenCalledWith({ success: true });
     });
 
     it('should logout and clear cookies', async () => {
@@ -64,8 +78,8 @@ describe('AuthController', () => {
         await logoutHandler(mockReq, mockRes);
         
         expect(AuthService.prototype.logout).toHaveBeenCalledWith('token');
-        expect(mockRes.clearCookie).toHaveBeenCalledWith('access_token');
-        expect(mockRes.clearCookie).toHaveBeenCalledWith('refresh_token');
+        expect(mockRes.clearCookie).toHaveBeenCalledWith('access_token', expect.any(Object));
+        expect(mockRes.clearCookie).toHaveBeenCalledWith('refresh_token', expect.any(Object));
         expect(mockRes.status).toHaveBeenCalledWith(200);
     });
 
@@ -98,6 +112,9 @@ describe('AuthController', () => {
             expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({
                 success: true,
                 message: "User registered successfully"
+            }));
+            expect(mockRes.json).not.toHaveBeenCalledWith(expect.objectContaining({
+                data: expect.objectContaining({ refreshToken: expect.any(String) })
             }));
             expect(mockRes.cookie).toHaveBeenCalledWith('access_token', 'at', expect.any(Object));
         });

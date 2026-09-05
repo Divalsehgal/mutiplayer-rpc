@@ -96,17 +96,12 @@ export const googleAuthHandler = async (req: Request, res: Response) => {
             message: "Google Login successful",
             data: {
                 user: { id: user._id, user_name: user.user_name, email: user.email, avatar: user.avatar },
-                accessToken: tokens.accessToken,
-                refreshToken: tokens.refreshToken
             }
         });
     } catch (err) {
-        const error = err as Error;
-        console.error("DEBUG GOOGLE AUTH ERROR:", error.message);
         res.status(401).json({
             success: false,
-            message: "Google authentication failed",
-            debug: error.message
+            message: "Google authentication failed"
         });
     }
 };

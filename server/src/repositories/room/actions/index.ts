@@ -70,10 +70,15 @@ export class RoomActionRepository extends RoomBaseRepository {
 
         const existing = this.getPlayerInRoom(room, data.playerUid);
         if (existing) {
+            let supersededSocketId: string | null = null;
+            if (existing.socketId && existing.socketId !== data.socketId) {
+                supersededSocketId = existing.socketId;
+                this.socketToPlayer.delete(existing.socketId);
+            }
             existing.socketId = data.socketId;
             existing.status = "online";
             if (data.socketId) this.socketToPlayer.set(data.socketId, data.playerUid);
-            return { room, role: existing.role };
+            return { room, role: existing.role, supersededSocketId };
         }
 
         const activePlayers = this.countActivePlayers(room);

@@ -7,21 +7,28 @@ interface RequestOptions extends RequestInit {
   retry?: boolean;
 }
 
-// Lock to prevent multiple simultaneous refreshes
-let isRefreshing = false;
-let refreshSubscribers: ((token: string) => void)[] = [];
+let refreshPromise: Promise<boolean> | null = null;
 
-function subscribeTokenRefresh(cb: (token: string) => void) {
-  refreshSubscribers.push(cb);
-}
+async function refreshSession() {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${SERVER_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    })
+      .then(async (refreshRes) => {
+        const refreshData = await refreshRes.json().catch(() => null);
+        return refreshRes.ok && refreshData?.success === true;
+      })
+      .finally(() => {
+        refreshPromise = null;
+      });
+  }
 
-function onTokenRefreshed(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
+  return refreshPromise;
 }
 
 export async function apiFetch(endpoint: string, options: RequestOptions = {}): Promise<{ ok: boolean; status: number; data: unknown }> {
-  const { accessToken, setAuth, logout } = useAuthStore.getState();
+  const { accessToken, logout } = useAuthStore.getState();
 
   const headers = new Headers(options.headers || {});
   if (accessToken) {
@@ -40,39 +47,19 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}): 
     credentials: 'include',
   });
 
-  if (response.status === 401 && !options.retry) {
-    if (isRefreshing) {
-      // Wait for the current refresh to finish
-      return new Promise((resolve) => {
-        subscribeTokenRefresh((newToken) => {
-          const retryOptions = { ...options };
-          retryOptions.headers = new Headers(options.headers);
-          retryOptions.headers.set('Authorization', `Bearer ${newToken}`);
-          resolve(apiFetch(endpoint, { ...retryOptions, retry: true }));
-        });
-      });
-    }
+  const shouldAttemptRefresh = response.status === 401
+    && !options.retry
+    && requestEndpoint !== 'auth/refresh'
+    && requestEndpoint !== 'auth/logout';
 
-    isRefreshing = true;
-
+  if (shouldAttemptRefresh) {
     try {
-      const refreshRes = await fetch(`${SERVER_URL}/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-
-      const refreshData = await refreshRes.json();
-
-      if (refreshData.success) {
-        const { accessToken: newAccessToken } = refreshData.data;
-        // Only update the token, keep current user
-        setAuth(useAuthStore.getState().user!, newAccessToken);
-        isRefreshing = false;
-        onTokenRefreshed(newAccessToken);
+      const refreshed = await refreshSession();
+      if (refreshed) {
         return apiFetch(endpoint, { ...options, retry: true });
       }
-    } catch (refreshErr) {
-      isRefreshing = false;
+      throw new Error('Session expired');
+    } catch {
       logout();
       window.location.href = '/login';
       throw new Error('Session expired');

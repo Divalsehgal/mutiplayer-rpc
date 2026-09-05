@@ -26,8 +26,8 @@ const Sidebar = ({ onAction }: SidebarProps) => {
     onAction?.();
   };
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
     onAction?.();
   };

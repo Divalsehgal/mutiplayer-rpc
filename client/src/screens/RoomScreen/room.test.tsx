@@ -15,6 +15,12 @@ describe('RoomScreen', () => {
         expect(document.querySelector('.animate-spin')).toBeDefined();
     });
 
+    it('should render the superseded state when this tab has been taken over', () => {
+        vi.mocked(useRoomLogic).mockReturnValue({ room: undefined, superseded: true });
+        render(<BrowserRouter><RoomScreen /></BrowserRouter>);
+        expect(screen.getByText(/Active Elsewhere/i)).toBeDefined();
+    });
+
     it('should render expired state when room is null', () => {
         vi.mocked(useRoomLogic).mockReturnValue({ room: null });
         render(<BrowserRouter><RoomScreen /></BrowserRouter>);

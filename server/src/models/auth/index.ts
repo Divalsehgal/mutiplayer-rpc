@@ -1,6 +1,6 @@
 import mongoose, { model, Schema } from 'mongoose'
-import jwt from 'jsonwebtoken'
 import bcrypt from 'bcrypt'
+import { signAccessToken, signRefreshToken } from '../../utils/authTokens';
 
 export interface IAuth extends mongoose.Document {
     userId: mongoose.Types.ObjectId;
@@ -38,17 +38,8 @@ const AuthSchema = new Schema<IAuth>({
  * Generates both Access Token and Refresh Token.
  */
 AuthSchema.methods.getJWT = function (user_name: string, avatar?: string) {
-    const accessToken = jwt.sign(
-        { _id: this.userId, user_name, avatar },
-        process.env.JWT_SECRET || "access_secret_key",
-        { expiresIn: '1h' }
-    );
-
-    const refreshToken = jwt.sign(
-        { _id: this.userId },
-        process.env.REFRESH_TOKEN_SECRET || "refresh_secret_key",
-        { expiresIn: '7d' }
-    );
+    const accessToken = signAccessToken({ _id: this.userId, user_name, avatar });
+    const refreshToken = signRefreshToken({ _id: this.userId });
 
     return { accessToken, refreshToken };
 };

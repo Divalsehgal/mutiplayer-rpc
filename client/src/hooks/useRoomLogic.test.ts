@@ -108,6 +108,25 @@ describe('useRoomLogic', () => {
         roomErrorCb({ code: 'OTHER' });
     });
 
+    it('should mark the session as superseded when another tab/device takes over the room', () => {
+        let sessionTakenOverCb: any;
+
+        vi.mocked(useSocketEvent).mockImplementation((event: string, cb: any) => {
+            if (event === 'session-taken-over') sessionTakenOverCb = cb;
+        });
+
+        const { result } = renderHook(() => useRoomLogic('r1'));
+
+        expect(sessionTakenOverCb).toBeDefined();
+        expect(result.current.superseded).toBe(false);
+
+        act(() => {
+            sessionTakenOverCb({ roomId: 'r1' });
+        });
+
+        expect(result.current.superseded).toBe(true);
+    });
+
     it('should execute interval when ttlWarning is > 0', () => {
         vi.useFakeTimers();
         const setTtlWarning = vi.fn();

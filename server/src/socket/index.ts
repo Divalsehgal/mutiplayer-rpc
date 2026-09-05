@@ -1,5 +1,4 @@
 import { Socket, Server } from "socket.io";
-import jwt from "jsonwebtoken";
 import { RoomRepository } from "../repositories/room";
 import { GameRegistry } from "../models";
 import { RoomService } from "../services/room";
@@ -9,6 +8,20 @@ import { GameController } from "../controllers/game";
 import { registerRoomRoutes } from "../routes/room";
 import { registerGameRoutes } from "../routes/game";
 import { Logger } from "../models";
+import { verifyAccessToken } from "../utils/authTokens";
+
+const getCookieValue = (cookieHeader: string | undefined, name: string) => {
+    if (!cookieHeader) return undefined;
+
+    const cookie = cookieHeader
+        .split(";")
+        .map((part) => part.trim())
+        .find((part) => part.startsWith(`${name}=`));
+
+    if (!cookie) return undefined;
+
+    return decodeURIComponent(cookie.slice(name.length + 1));
+};
 
 export function initSocket({ io, roomStore, gameRegistry, logger }: {
     io: Server,
@@ -25,17 +38,15 @@ export function initSocket({ io, roomStore, gameRegistry, logger }: {
     // Authentication middleware
     io.use((socket, next) => {
         const { token, playerUid } = socket.handshake.auth;
+        const cookieToken = getCookieValue(socket.handshake.headers?.cookie, "access_token");
+        const accessToken = typeof token === "string" ? token : cookieToken;
 
-        logger.info(`🔑 Socket Auth Attempt - UID: ${playerUid}, HasToken: ${!!token}`);
+        logger.info(`🔑 Socket Auth Attempt - UID: ${playerUid}, HasToken: ${!!accessToken}`);
 
         // If JWT token is provided, verify it
-        if (token) {
+        if (accessToken) {
             try {
-                const secret = process.env.JWT_SECRET || "access_secret_key";
-                if (!process.env.JWT_SECRET) {
-                    logger.warn("⚠️ JWT_SECRET not found in env, using default fallback for Socket!");
-                }
-                const decoded = jwt.verify(token, secret) as { _id: string; user_name: string, avatar?: string };
+                const decoded = verifyAccessToken<{ _id: string; user_name: string, avatar?: string }>(accessToken);
                 
                 socket.data.avatar = decoded.avatar;
 

@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { RoomRepository } from "../../repositories/room";
-import { GameRegistry, Logger, SerializedRoom } from "../../models";
+import { GameRegistry, Logger, Room, SerializedRoom } from "../../models";
 import { GameState } from "../../models/game/Game";
 
 export class GameService {
@@ -10,9 +10,18 @@ export class GameService {
         private logger: Logger
     ) {}
 
+    // Only seated players may act on game state - spectators must never be able
+    // to influence moves/ready checks (they can otherwise be folded in as a
+    // phantom participant, e.g. deciding an RPS round or forcing a restart).
+    private isActivePlayer(room: Room, playerUid: string): boolean {
+        return room.players.some((p) => p.playerUid === playerUid && p.role === "player");
+    }
+
     handleReady(roomId: string, playerUid: string) {
         const room = this.roomRepository.getRoom(roomId);
         if (!room) return null;
+
+        if (!this.isActivePlayer(room, playerUid)) return null;
 
         const handler = this.gameRegistry[room.gameType];
         if (!handler || !handler.handleReady) return null;
@@ -32,6 +41,8 @@ export class GameService {
     handleMove(roomId: string, playerUid: string, move: unknown): { gameState: GameState } | null {
         const room = this.roomRepository.getRoom(roomId);
         if (!room) return null;
+
+        if (!this.isActivePlayer(room, playerUid)) return null;
 
         const handler = this.gameRegistry[room.gameType];
         if (!handler) return null;

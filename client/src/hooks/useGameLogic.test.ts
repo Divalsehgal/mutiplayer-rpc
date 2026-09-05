@@ -22,6 +22,10 @@ vi.mock('react-router-dom', () => ({
     useNavigate: () => vi.fn()
 }));
 
+vi.mock('./useSocket', () => ({
+    useSocket: () => ({ isConnected: true })
+}));
+
 vi.mock('./useSocketEvent', () => ({
     useSocketEvent: vi.fn()
 }));
@@ -40,7 +44,8 @@ describe('useGameLogic', () => {
             room: undefined,
             setRoom: mockSetRoom,
             ttlWarning: null,
-            setTtlWarning: mockSetTtlWarning
+            setTtlWarning: mockSetTtlWarning,
+            reset: vi.fn()
         } as any);
     });
 
@@ -130,7 +135,8 @@ describe('useGameLogic', () => {
             room: undefined,
             setRoom: mockSetRoom,
             ttlWarning: 10,
-            setTtlWarning: mockSetTtlWarning
+            setTtlWarning: mockSetTtlWarning,
+            reset: vi.fn()
         } as any);
 
         renderHook(() => useGameLogic('r1'));

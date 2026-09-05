@@ -47,7 +47,7 @@ export class RoomController {
     joinRoom(socket: Socket, data: JoinRoomRequest, callback: (res: RoomResponse) => void) {
         const playerUid = socket.data.playerUid;
         try {
-            const { room } = this.roomService.joinRoom({
+            const { room, supersededSocketId } = this.roomService.joinRoom({
                 roomId: data.roomId,
                 playerUid,
                 socketId: socket.id,
@@ -55,6 +55,13 @@ export class RoomController {
                 avatar: socket.data.avatar
             });
             socket.join(room.id);
+
+            // The same player just connected from another tab/device - let the
+            // superseded socket know it's no longer the live session for this room.
+            if (supersededSocketId) {
+                this.io.to(supersededSocketId).emit("session-taken-over", { roomId: room.id });
+            }
+
             const serialized = this.gameService.getPublicRoomState(room.id, playerUid);
             callback({ ok: true, room: serialized });
             this.broadcastRoomUpdate(room.id);

@@ -11,6 +11,7 @@ import { GameHeader } from "../../components/GameHeader";
 import { RPSArena } from "../../components/RPSArena";
 import { SnakeLadderArena } from "../../components/SnakeLadderArena";
 import { TicTacToeArena } from "../../components/TicTacToeArena";
+import { SessionSupersededScreen } from "../../components/SessionSupersededScreen";
 
 /* eslint-disable max-lines */
 import { GameState, BaseArenaProps, hasRoundCount } from "../../types";
@@ -28,6 +29,7 @@ export default function GameScreen() {
     room,
     playerUid,
     ttlWarning,
+    superseded,
     handleExtendSession,
     handleLeave,
     handleRPSMove,
@@ -42,6 +44,8 @@ export default function GameScreen() {
       navigate(`/room/${roomId}`);
     }
   }, [room?.status, roomId, navigate]);
+
+  if (superseded) return <SessionSupersededScreen />;
 
   if (room === null)
     return (

@@ -1,6 +1,5 @@
 import { RoomRepository } from "../../repositories/room";
 import { GameRegistry, Logger, Room } from "../../models";
-import { GameState } from "../../models/game/Game";
 
 const DEFAULT_MAX_PLAYERS = 2;
 const SNAKE_LADDER_MAX_PLAYERS = 4;
@@ -41,27 +40,10 @@ export class RoomService {
     }
 
 
-    joinRoom(data: { roomId: string, playerUid: string, socketId: string, name: string, avatar?: string }): { room: Room, role: string } {
+    joinRoom(data: { roomId: string, playerUid: string, socketId: string, name: string, avatar?: string }): { room: Room, role: string, supersededSocketId?: string | null } {
         const result = this.roomRepository.joinRoom(data);
         this.logger.info(`👤 Player ${data.playerUid} joined Room ${data.roomId} as ${result.role}`);
         return result;
-    }
-
-    handleReady(roomId: string, playerUid: string): { gameState: GameState, status: string } | null {
-        const room = this.roomRepository.getRoom(roomId);
-        if (!room) return null;
-
-        const handler = this.gameRegistry[room.gameType];
-        if (!handler || !handler.handleReady) return null;
-
-        const { newGameState } = handler.handleReady({ room, gameState: room.gameState, playerUid });
-        this.roomRepository.updateGameState({
-            roomId: room.id,
-            gameState: newGameState,
-            status: "playing"
-        });
-        
-        return { gameState: newGameState, status: "playing" };
     }
 
     resetRoomState(roomId: string): void {

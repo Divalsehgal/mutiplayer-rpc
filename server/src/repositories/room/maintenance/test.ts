@@ -9,7 +9,7 @@ describe('RoomMaintenanceRepository', () => {
         repo = new RoomMaintenanceRepository(() => mockNow);
     });
 
-    it('should handle disconnection and reconnection', () => {
+    it('should handle disconnection and reconnection via rejoin', () => {
         const room = repo.createRoom({
             hostPlayerUid: 'h1',
             socketId: 's1',
@@ -22,8 +22,10 @@ describe('RoomMaintenanceRepository', () => {
         repo.markSocketDisconnected('s1');
         expect(room.players[0].status).toBe('offline');
 
-        repo.reconnectPlayer({ playerUid: 'h1', socketId: 's2' });
+        // Reconnection happens by rejoining with the same playerUid and a fresh socket.
+        repo.joinRoom({ roomId: room.id, playerUid: 'h1', socketId: 's2', name: 'P1' });
         expect(room.players[0].status).toBe('online');
+        expect(room.players[0].socketId).toBe('s2');
     });
 
     it('should increment score', () => {
@@ -94,12 +96,6 @@ describe('RoomMaintenanceRepository', () => {
             expect(repo.markSocketDisconnected('unknown')).toBeNull();
         });
 
-        it('should return null when reconnecting player with unknown room or player', () => {
-            expect(repo.reconnectPlayer({ playerUid: 'unknown', socketId: 's2' })).toBeNull();
-            
-            expect(repo.reconnectPlayer({ playerUid: 'unknown', socketId: 's2' })).toBeNull();
-        });
-
         it('should silently return when incrementing score for unknown room or player', () => {
             repo.incrementScore('unknown', 'h1');
             const room = repo.createRoom({ hostPlayerUid: 'h1', socketId: 's1', name: 'P1', gameType: 'RPS', hostName: 'P1', initialGameState: {} as RPSState });
@@ -151,13 +147,6 @@ describe('RoomMaintenanceRepository', () => {
             expect(room.players.length).toBe(1);
         });
 
-        it('should return null when reconnecting unknown player in existing room', () => {
-            repo.createRoom({
-                hostPlayerUid: 'h1', socketId: 's1', name: 'P1', gameType: 'RPS', hostName: 'P1', initialGameState: {} as RPSState
-            });
-            expect(repo.reconnectPlayer({ playerUid: 'unknown', socketId: 's2' })).toBeNull();
-        });
-
         it('should handle updateGameState without status update', () => {
             const room = repo.createRoom({
                 hostPlayerUid: 'h1', socketId: 's1', name: 'P1', gameType: 'RPS', hostName: 'P1', initialGameState: {} as RPSState
@@ -187,14 +176,6 @@ describe('RoomMaintenanceRepository', () => {
             repo.checkRoomTTLs();
             expect(repo.getRoom(room.id)).toBeNull();
             expect((repo as any).socketToPlayer.has('s1')).toBe(false);
-        });
-
-        it('should return null in reconnectPlayer if player not in room despite mapping', () => {
-            const room = repo.createRoom({
-                hostPlayerUid: 'h1', socketId: 's1', name: 'P1', gameType: 'RPS', hostName: 'P1', initialGameState: {} as RPSState
-            });
-            (repo as any).playerToRoom.set('ghost', room.id);
-            expect(repo.reconnectPlayer({ playerUid: 'ghost', socketId: 's2' })).toBeNull();
         });
 
         it('should cleanup socket mapping when room expires in checkRoomTTLs', () => {
