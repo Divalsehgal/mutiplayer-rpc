@@ -97,26 +97,17 @@ describe('apiFetch', () => {
         expect(res2.data).toBeDefined();
     });
 
-    it('should handle refresh failure and logout', async () => {
+    it('should handle refresh failure and logout without a hard redirect', async () => {
         // First call 401
         (fetch as any)
             .mockResolvedValueOnce({ status: 401, ok: false, json: async () => ({}) })
             // Refresh call fails
-            .mockRejectedValueOnce(new Error('Refresh failed'));
+            .mockRejectedValueOnce(new Error('Refresh failed'))
+            // logout()'s own apiFetch('/auth/logout') call
+            .mockResolvedValueOnce({ status: 200, ok: true, json: async () => ({}) });
 
-        // Mock window.location
-        const originalLocation = window.location;
-        Object.defineProperty(window, 'location', {
-            configurable: true,
-            value: { href: '' },
-        });
-
+        // A hard redirect here would re-mount the app and re-trigger checkAuth(),
+        // causing an infinite reload loop on the login page — this must not happen.
         await expect(apiFetch('/test')).rejects.toThrow('Session expired');
-        expect(window.location.href).toBe('/login');
-
-        Object.defineProperty(window, 'location', {
-            configurable: true,
-            value: originalLocation,
-        });
     });
 });

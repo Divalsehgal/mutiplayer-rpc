@@ -100,20 +100,32 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
-function App() {
-  const { isAuthenticated, checkAuth } = useAuthStore();
-  const { isConnected } = useSocket();
+function AuthBootstrap() {
+  const checkAuth = useAuthStore((state) => state.checkAuth);
+  const location = useLocation();
 
-  // On mount, check if we have a valid session
+  // On mount, check if we have a valid session (skip on the login page itself)
   useEffect(() => {
-    checkAuth();
+    if (location.pathname !== "/login") {
+      checkAuth();
+    }
+    // Intentionally run once on mount only; location.pathname is read, not reacted to.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkAuth]);
+
+  return null;
+}
+
+function App() {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isConnected } = useSocket();
 
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <div className="bg-background text-foreground min-h-screen font-sans antialiased">
         <BrowserRouter>
           <AppLayout>
+            <AuthBootstrap />
             {/* Only show interruption warning when in a Room or Game */}
             <ConnectionBanner
               isConnected={isConnected}

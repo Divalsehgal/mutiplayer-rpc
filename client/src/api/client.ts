@@ -61,7 +61,6 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}): 
       throw new Error('Session expired');
     } catch {
       logout();
-      window.location.href = '/login';
       throw new Error('Session expired');
     }
   }
